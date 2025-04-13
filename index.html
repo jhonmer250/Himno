@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Juego de Ahorcado Mejorado en la Farmacia</title>
   <style>
-    /* BASIC STYLING */
+    /* RESET Y ESTILOS BASE */
     body {
       font-family: Arial, sans-serif;
       background-color: #f4f4f4;
@@ -42,24 +42,28 @@
     .records-area {
       flex: 1 1 300px;
     }
-    .game-area h1, .records-area h2 {
+    h1, h2, h3, p {
+      margin: 0;
+      padding: 0;
+    }
+    .word, #message, #timerDisplay, .scoreboard, .current-score {
       text-align: center;
+      margin: 10px 0;
     }
     .word {
       font-size: 28px;
       letter-spacing: 5px;
-      text-align: center;
       margin: 20px 0;
     }
-    /* Imagen y pista no superpuesta */
+    
+    /* ÁREA DE LA IMAGEN Y PISTA (no superpuestas) */
     .image {
       text-align: center;
       margin: 20px 0;
     }
-    /* Estilo actualizado para la pista (ya no superpuesta) */
     .hint-overlay {
       display: block;
-      background: rgba(230, 230, 230, 0.9);
+      background: rgba(230,230,230,0.9);
       color: #333;
       padding: 5px 10px;
       border: 1px solid #ccc;
@@ -71,18 +75,8 @@
     #hangmanImage {
       transition: opacity 0.5s ease, transform 0.5s ease;
     }
-    #message, #timerDisplay {
-      font-size: 20px;
-      text-align: center;
-      margin: 10px 0;
-      transition: opacity 0.5s;
-    }
-    .scoreboard, .current-score {
-      text-align: center;
-      margin: 10px 0;
-      font-size: 18px;
-    }
-    /* Wrong Letters Table */
+    
+    /* TABLA DE LETRAS INCORRECTAS */
     .wrong-letters {
       text-align: center;
       margin-top: 20px;
@@ -97,7 +91,8 @@
       padding: 8px 12px;
       text-transform: uppercase;
     }
-    /* ON-SCREEN KEYBOARD */
+    
+    /* TECLADO EN PANTALLA */
     #keyboardContainer {
       text-align: center;
       margin-top: 15px;
@@ -111,6 +106,10 @@
       border-radius: 4px;
       text-transform: uppercase;
       width: 40px;
+      transition: background 0.2s;
+    }
+    #keyboardContainer button:active {
+      background-color: #ccc;
     }
     #keyboardContainer button:disabled {
       background-color: #ddd;
@@ -121,14 +120,15 @@
       background-color: #888;
       color: #444;
     }
-    /* Modal Start Screen */
+    
+    /* MODAL DE INICIO CON MARCA DE AGUA */
     .modal {
       position: fixed;
       top: 0;
       left: 0;
       width: 100%;
       height: 100%;
-      background: rgba(0, 0, 0, 0.5);
+      background: rgba(0,0,0,0.5);
       display: flex;
       justify-content: center;
       align-items: center;
@@ -136,7 +136,7 @@
     }
     .modal-content {
       position: relative;
-      background: rgba(255, 255, 255, 0.95);
+      background: rgba(255,255,255,0.95);
       padding: 20px;
       border-radius: 8px;
       width: 90%;
@@ -184,7 +184,8 @@
       font-size: 16px;
       cursor: pointer;
     }
-    /* Records Table */
+    
+    /* TABLA DE RÉCORDS */
     .records-area table {
       width: 100%;
       margin-top: 10px;
@@ -196,7 +197,8 @@
       padding: 8px;
       text-align: center;
     }
-    /* Animations */
+    
+    /* ANIMACIONES */
     .animate-fadein {
       animation: fadeIn 0.5s;
     }
@@ -204,7 +206,8 @@
       from { opacity: 0; }
       to { opacity: 1; }
     }
-    /* Dark Mode Toggle Button */
+    
+    /* BOTÓN TOGGLE DARK MODE */
     #darkModeToggle {
       position: fixed;
       top: 20px;
@@ -213,10 +216,18 @@
       font-size: 14px;
       z-index: 1100;
     }
+    
+    /* MEDIA QUERIES PARA MÓVILES */
+    @media(max-width: 600px) {
+      .welcome-title { font-size: 36px; }
+      .subtitle { font-size: 18px; }
+      .word { font-size: 22px; }
+      #keyboardContainer button { width: 35px; font-size: 14px; padding: 8px 10px; }
+    }
   </style>
 </head>
 <body>
-  <!-- Botón para Dark/Light mode -->
+  <!-- Botón para alternar Dark/Light mode -->
   <button id="darkModeToggle" onclick="toggleDarkMode()">Toggle Dark Mode</button>
   
   <!-- Modal de inicio -->
@@ -251,12 +262,12 @@
     </div>
   </div>
   
-  <!-- Contenedor principal (se muestra al iniciar el juego) -->
+  <!-- Contenedor principal (se muestra después de iniciar) -->
   <div class="container" id="gameContainer" style="display:none;">
-    <!-- Área de Juego -->
+    <!-- Área de juego -->
     <div class="game-area">
       <h1>Juego de Ahorcado en la Farmacia</h1>
-      <!-- Contenedor de la imagen y pista (la pista ahora aparece arriba de la imagen) -->
+      <!-- Contenedor de imagen y pista (la pista se muestra arriba de la imagen) -->
       <div class="image">
         <div id="hintDisplay" class="hint-overlay"></div>
         <img id="hangmanImage" src="images/stage0.png" alt="Ahorcado" width="200" />
@@ -302,27 +313,23 @@
     </div>
   </div>
   
-  <!-- Elementos de audio (ajusta las rutas según tus archivos) -->
+  <!-- Elementos de audio (ajusta la ruta según tus archivos) -->
   <audio id="audio-correct" src="sounds/correct.mp3"></audio>
   <audio id="audio-wrong" src="sounds/wrong.mp3"></audio>
   <audio id="audio-gameover" src="sounds/gameover.mp3"></audio>
   
   <script>
-    /* Estadísticas globales */
-    let totalGames = 0;
-    let totalWins = 0;
-    let totalLosses = 0;
-    let totalTimeSpent = 0; // en segundos
-
-    /* Alternar Dark/Light mode */
+    /* Variables globales para estadísticas */
+    let totalGames = 0, totalWins = 0, totalLosses = 0, totalTimeSpent = 0;
+    
     function toggleDarkMode() {
       document.body.classList.toggle("dark-mode");
     }
     
-    /* Gestión de récords (almacenados en localStorage) */
+    /* Gestión de Récords en localStorage */
     function loadRecords() {
-      const recordsData = localStorage.getItem("hangmanRecords");
-      return recordsData ? JSON.parse(recordsData) : [];
+      const data = localStorage.getItem("hangmanRecords");
+      return data ? JSON.parse(data) : [];
     }
     
     function saveRecords(records) {
@@ -333,44 +340,32 @@
       const records = loadRecords();
       const table = document.getElementById("recordsTable");
       let rows = "<tr><th>Nombre</th><th>Puntaje</th><th>Fecha</th></tr>";
-      records.forEach(record => {
-        rows += `<tr><td>${record.name}</td><td>${record.score}</td><td>${record.date}</td></tr>`;
+      records.forEach(r => {
+        rows += `<tr><td>${r.name}</td><td>${r.score}</td><td>${r.date}</td></tr>`;
       });
       table.innerHTML = rows;
     }
     
     function saveRecord() {
-      const nameInput = document.getElementById("recordName");
-      const name = nameInput.value.trim();
-      if (!name) {
-        alert("Por favor, ingresa un nombre válido.");
-        return;
-      }
-      const score = game.currentScore || 0;
-      const record = {
-        name: name,
-        score: score,
-        date: new Date().toLocaleString()
-      };
+      const name = document.getElementById("recordName").value.trim();
+      if (!name) { alert("Por favor, ingresa un nombre válido."); return; }
+      const record = { name, score: game.currentScore || 0, date: new Date().toLocaleString() };
       const records = loadRecords();
       records.push(record);
       records.sort((a, b) => b.score - a.score);
       saveRecords(records);
       updateRecordsTable();
-      nameInput.value = "";
+      document.getElementById("recordName").value = "";
     }
     
     function updateStatsDisplay() {
-      const avgTime =
-        totalGames > 0 ? (totalTimeSpent / totalGames).toFixed(1) : 0;
+      const avgTime = totalGames > 0 ? (totalTimeSpent / totalGames).toFixed(1) : 0;
       document.getElementById("overallStats").textContent =
         `Total Partidas: ${totalGames} | Victorias: ${totalWins} | Derrotas: ${totalLosses} | Tiempo Promedio: ${avgTime} s`;
     }
     
-    /* Teclado en pantalla (alfabeto: a-z, ñ) */
-    const alphabet = [
-      "a","b","c","d","e","f","g","h","i","j","k","l","m","n","ñ","o","p","q","r","s","t","u","v","w","x","y","z"
-    ];
+    /* Teclado en pantalla */
+    const alphabet = "abcdefghijklmnopqrstuvwxyzñ".split("");
     
     function buildKeyboard() {
       const container = document.getElementById("keyboardContainer");
@@ -379,9 +374,7 @@
         const btn = document.createElement("button");
         btn.textContent = letter;
         btn.id = "key_" + letter;
-        btn.addEventListener("click", () => {
-          game.submitGuess(letter);
-        });
+        btn.addEventListener("click", () => { game.submitGuess(letter); });
         container.appendChild(btn);
       });
     }
@@ -393,41 +386,20 @@
       });
     }
     
-    /* Clase que contiene la lógica del juego con mejoras */
+    /* Clase principal del juego */
     class HangmanGame {
       constructor(options) {
         this.mode = options.mode; // "singleplayer" o "multiplayer"
         this.difficulty = options.difficulty; // "facil", "medio", "dificil", "super facil"
         this.customWord = options.customWord || "";
         this.customHint = options.customHint || "";
-        // Configuración según la dificultad
         switch (this.difficulty) {
-          case "facil":
-            this.maxAttempts = 8;
-            this.turnTime = 15;
-            this.alwaysShowHint = true;
-            break;
-          case "medio":
-            this.maxAttempts = 6;
-            this.turnTime = 10;
-            this.alwaysShowHint = false;
-            break;
-          case "dificil":
-            this.maxAttempts = 4;
-            this.turnTime = 7;
-            this.alwaysShowHint = false;
-            break;
-          case "super facil":
-            this.maxAttempts = 8;
-            this.turnTime = 0; // No se usa temporizador
-            this.alwaysShowHint = true;
-            break;
-          default:
-            this.maxAttempts = 6;
-            this.turnTime = 10;
-            this.alwaysShowHint = false;
+          case "facil": this.maxAttempts = 8; this.turnTime = 15; this.alwaysShowHint = true; break;
+          case "medio": this.maxAttempts = 6; this.turnTime = 10; this.alwaysShowHint = false; break;
+          case "dificil": this.maxAttempts = 4; this.turnTime = 7; this.alwaysShowHint = false; break;
+          case "super facil": this.maxAttempts = 8; this.turnTime = 0; this.alwaysShowHint = true; break;
+          default: this.maxAttempts = 6; this.turnTime = 10; this.alwaysShowHint = false;
         }
-        // Lista de medicamentos para el modo solitario (20 productos en Venezuela)
         this.words = [
           "atamel", "longacef", "miovit", "colypan", "aciclovir",
           "alpram", "levotiroxina", "candesartan", "propofol", "prurica",
@@ -435,29 +407,28 @@
           "metformina", "captopril", "simvastatina", "loratadina", "azitromicina"
         ];
         this.hints = {
-          "atamel": "Se usa para aliviar dolores leves a moderados.",
+          "atamel": "Alivia dolores leves a moderados.",
           "longacef": "Antibiótico para infecciones respiratorias.",
           "miovit": "Suplemento vitamínico para el organismo.",
           "colypan": "Se usa para tratar la hipertensión.",
-          "aciclovir": "Combate infecciones por el virus del herpes.",
-          "alpram": "Tratamiento para crisis de ansiedad y epilepsia.",
-          "levotiroxina": "Esencial para tratar el hipotiroidismo.",
+          "aciclovir": "Combate infecciones por el herpes.",
+          "alpram": "Para crisis de ansiedad y epilepsia.",
+          "levotiroxina": "Esencial en el hipotiroidismo.",
           "candesartan": "Controla la presión arterial alta.",
           "propofol": "Anestésico para procedimientos médicos.",
           "prurica": "Alivia el prurito en afecciones cutáneas.",
           "paracetamol": "Alivia el dolor y reduce la fiebre.",
-          "ibuprofeno": "Antiinflamatorio y analgésico; reduce dolor e inflamación.",
-          "amoxicilina": "Antibiótico para tratar diversas infecciones bacterianas.",
+          "ibuprofeno": "Antiinflamatorio y analgésico.",
+          "amoxicilina": "Para diversas infecciones bacterianas.",
           "omeprazol": "Reduce la acidez estomacal y trata úlceras.",
-          "dipirona": "Analgésico y antipirético para fiebre y dolor.",
-          "metformina": "Medicamento de primera línea para la diabetes tipo 2.",
+          "dipirona": "Antipirético y analgésico para fiebre.",
+          "metformina": "De primera línea para la diabetes tipo 2.",
           "captopril": "Reduce la presión arterial al inhibir la ACE.",
           "simvastatina": "Disminuye el colesterol en la sangre.",
-          "loratadina": "Antihistamínico eficaz contra alergias.",
-          "azitromicina": "Antibiótico macrólido para infecciones respiratorias."
+          "loratadina": "Antihistamínico contra alergias.",
+          "azitromicina": "Antibiótico para infecciones respiratorias."
         };
-        // Para modo solitario, evitar repetir palabras en cada ronda.
-        this.availableWords = [...this.words];
+        this.availableWords = [...this.words]; // Para evitar repetir en solitario
         this.wins = 0;
         this.losses = 0;
         this.resetGame();
@@ -469,7 +440,7 @@
         if (this.mode === "singleplayer") {
           if (this.availableWords.length === 0) {
             this.availableWords = [...this.words];
-            alert("Has completado todas las palabras de esta ronda. Reiniciando la lista.");
+            alert("Has completado todas las palabras. Reiniciando la lista.");
           }
           let idx = Math.floor(Math.random() * this.availableWords.length);
           this.word = this.availableWords[idx];
@@ -480,30 +451,23 @@
           this.currentHint = this.customHint;
         }
         this.attempts = 0;
-        // Inicializa la palabra oculta con guiones bajos
         this.guessedWord = Array(this.word.length).fill("_");
-        // En "super facil", revela 3 letras aleatorias al inicio
         if (this.difficulty === "super facil") {
-          let indicesRevealed = [];
-          while (indicesRevealed.length < 3 && indicesRevealed.length < this.word.length) {
-            let randomIndex = Math.floor(Math.random() * this.word.length);
-            if (!indicesRevealed.includes(randomIndex)) {
-              indicesRevealed.push(randomIndex);
-              this.guessedWord[randomIndex] = this.word[randomIndex];
-            }
+          let revealed = [];
+          while (revealed.length < 3 && revealed.length < this.word.length) {
+            let i = Math.floor(Math.random() * this.word.length);
+            if (!revealed.includes(i)) { revealed.push(i); this.guessedWord[i] = this.word[i]; }
           }
         }
         this.wrongLetters = [];
         this.hintShown = false;
         this.currentScore = 0;
         this.startTime = new Date();
-        
         this.updateWordDisplay();
         this.updateWrongLettersTable();
         this.updateHangmanImage();
         this.setMessage("");
         document.getElementById("currentScoreDisplay").textContent = "";
-        // Actualiza la pista (ahora se muestra arriba de la imagen)
         document.getElementById("hintDisplay").textContent = this.alwaysShowHint ? this.currentHint : "";
         resetKeyboard();
         if (this.turnTime > 0) {
@@ -514,41 +478,36 @@
       }
       
       updateWordDisplay() {
-        const wordDisplay = document.getElementById("wordDisplay");
-        wordDisplay.textContent = this.guessedWord.join(" ");
-        wordDisplay.classList.add("animate-fadein");
-        setTimeout(() => { wordDisplay.classList.remove("animate-fadein"); }, 500);
+        const wd = document.getElementById("wordDisplay");
+        wd.textContent = this.guessedWord.join(" ");
+        wd.classList.add("animate-fadein");
+        setTimeout(() => { wd.classList.remove("animate-fadein"); }, 500);
       }
       
       updateWrongLettersTable() {
         const table = document.getElementById("wrongLettersTable");
-        let rowContent = "<tr><th>Letras</th></tr><tr>" +
-          this.wrongLetters.map(letter => `<td>${letter}</td>`).join("") +
-          "</tr>";
-        table.innerHTML = rowContent;
+        let row = "<tr><th>Letras</th></tr><tr>" + this.wrongLetters.map(l => `<td>${l}</td>`).join("") + "</tr>";
+        table.innerHTML = row;
         table.classList.add("animate-fadein");
         setTimeout(() => { table.classList.remove("animate-fadein"); }, 500);
       }
       
       setMessage(msg) {
-        const messageEl = document.getElementById("message");
-        messageEl.textContent = msg;
-        messageEl.classList.add("animate-fadein");
-        setTimeout(() => { messageEl.classList.remove("animate-fadein"); }, 500);
+        const msgEl = document.getElementById("message");
+        msgEl.textContent = msg;
+        msgEl.classList.add("animate-fadein");
+        setTimeout(() => { msgEl.classList.remove("animate-fadein"); }, 500);
       }
       
       updateHangmanImage() {
-        const hangmanImage = document.getElementById("hangmanImage");
-        hangmanImage.src = `images/stage${this.attempts}.png`;
-        hangmanImage.classList.add("animate-fadein");
-        setTimeout(() => { hangmanImage.classList.remove("animate-fadein"); }, 500);
+        const img = document.getElementById("hangmanImage");
+        img.src = `images/stage${this.attempts}.png`;
+        img.classList.add("animate-fadein");
+        setTimeout(() => { img.classList.remove("animate-fadein"); }, 500);
       }
       
       calculateScore() {
-        if (!this.guessedWord.includes("_")) {
-          return (this.maxAttempts - this.attempts) * 10;
-        }
-        return 0;
+        return !this.guessedWord.includes("_") ? (this.maxAttempts - this.attempts) * 10 : 0;
       }
       
       submitGuess(letter) {
@@ -559,11 +518,7 @@
         }
         this.stopTurnTimer();
         if (this.word.includes(letter)) {
-          this.word.split("").forEach((char, index) => {
-            if (char === letter) {
-              this.guessedWord[index] = letter;
-            }
-          });
+          this.word.split("").forEach((char, i) => { if (char === letter) { this.guessedWord[i] = letter; } });
           this.updateWordDisplay();
           document.getElementById("audio-correct").play();
           if (!this.guessedWord.includes("_")) {
@@ -571,7 +526,7 @@
             this.setMessage(`¡Felicidades! Ganaste. Puntaje: ${this.currentScore}`);
             document.getElementById("hangmanImage").src = "images/stage7.png";
             if (this.wrongLetters.length === 0) {
-              this.setMessage("¡Juego perfecto! " + `Puntaje: ${this.currentScore}`);
+              this.setMessage("¡Juego perfecto! Puntaje: " + this.currentScore);
             }
             this.wins++;
             this.updateScoreBoard();
@@ -592,30 +547,27 @@
           }
           if (this.attempts === this.maxAttempts) {
             this.currentScore = 0;
-            this.setMessage(`¡Game Over! La palabra era "${this.word}". Puntaje: ${this.currentScore}`);
+            this.setMessage(`¡Game Over! La palabra era "${this.word}". Puntaje: 0`);
             document.getElementById("hangmanImage").src = "images/stage" + this.maxAttempts + ".png";
             this.losses++;
             this.updateScoreBoard();
-            document.getElementById("currentScoreDisplay").textContent = `Puntaje obtenido: ${this.currentScore}`;
+            document.getElementById("currentScoreDisplay").textContent = "Puntaje obtenido: 0";
             document.getElementById("audio-gameover").play();
             this.stopTurnTimer();
             this.endGame();
             return;
           }
         }
-        if (this.turnTime > 0) {
-          this.startTurnTimer();
-        }
+        if (this.turnTime > 0) { this.startTurnTimer(); }
       }
       
       updateScoreBoard() {
-        const scoreBoard = document.getElementById("scoreBoard");
-        scoreBoard.textContent = `Victorias: ${this.wins} | Derrotas: ${this.losses}`;
-        scoreBoard.classList.add("animate-fadein");
-        setTimeout(() => { scoreBoard.classList.remove("animate-fadein"); }, 500);
+        const sb = document.getElementById("scoreBoard");
+        sb.textContent = `Victorias: ${this.wins} | Derrotas: ${this.losses}`;
+        sb.classList.add("animate-fadein");
+        setTimeout(() => { sb.classList.remove("animate-fadein"); }, 500);
       }
       
-      /* Temporizador para cada turno */
       startTurnTimer() {
         if (this.turnTime <= 0) return;
         this.remainingTime = this.turnTime;
@@ -627,13 +579,8 @@
             clearInterval(this.timerInterval);
             this.setMessage("¡Tiempo agotado! Se cuenta como error.");
             let dummy = "z";
-            if (this.word.includes(dummy) || this.wrongLetters.includes(dummy)) {
-              for (let l of alphabet) {
-                if (!this.guessedWord.includes(l) && !this.wrongLetters.includes(l)) {
-                  dummy = l;
-                  break;
-                }
-              }
+            for (let l of alphabet) {
+              if (!this.guessedWord.includes(l) && !this.wrongLetters.includes(l)) { dummy = l; break; }
             }
             this.submitGuess(dummy);
           }
@@ -645,14 +592,9 @@
       }
       
       endGame() {
-        let endTime = new Date();
-        let gameDuration = Math.floor((endTime - this.startTime) / 1000);
+        const gameDuration = Math.floor((new Date() - this.startTime) / 1000);
         totalGames++;
-        if (this.currentScore > 0) {
-          totalWins++;
-        } else {
-          totalLosses++;
-        }
+        if (this.currentScore > 0) { totalWins++; } else { totalLosses++; }
         totalTimeSpent += gameDuration;
         updateStatsDisplay();
       }
@@ -660,13 +602,11 @@
     
     let game;
     
-    /* Gestión del formulario de inicio */
     document.getElementById("startForm").addEventListener("submit", function(e) {
       e.preventDefault();
       const mode = document.querySelector('input[name="mode"]:checked').value;
       const difficulty = document.getElementById("difficultySelect").value;
-      let customWord = "";
-      let customHint = "";
+      let customWord = "", customHint = "";
       if (mode === "multiplayer") {
         customWord = document.getElementById("multiplayerWord").value.trim();
         customHint = document.getElementById("multiplayerHint").value.trim();
@@ -678,36 +618,22 @@
       document.getElementById("startModal").style.display = "none";
       document.getElementById("gameContainer").style.display = "flex";
       buildKeyboard();
-      game = new HangmanGame({
-        mode: mode,
-        difficulty: difficulty,
-        customWord: customWord,
-        customHint: customHint
-      });
+      game = new HangmanGame({ mode, difficulty, customWord, customHint });
     });
     
-    /* Mostrar/ocultar campos para multijugador */
-    const modeRadios = document.querySelectorAll('input[name="mode"]');
-    modeRadios.forEach(radio => {
+    document.querySelectorAll('input[name="mode"]').forEach(radio => {
       radio.addEventListener("change", function() {
-        if (this.value === "multiplayer") {
-          document.getElementById("multiplayerFields").style.display = "block";
-        } else {
-          document.getElementById("multiplayerFields").style.display = "none";
-        }
+        document.getElementById("multiplayerFields").style.display = this.value === "multiplayer" ? "block" : "none";
       });
     });
     
-    /* Soporte para teclado físico */
     document.addEventListener("keydown", function(e) {
       const letter = e.key.toLowerCase();
       if (alphabet.includes(letter)) {
         const btn = document.getElementById("key_" + letter);
         if (btn && !btn.disabled) {
           btn.disabled = true;
-          if (game) {
-            game.submitGuess(letter);
-          }
+          if (game) { game.submitGuess(letter); }
         }
       }
     });
