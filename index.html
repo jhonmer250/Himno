@@ -1,812 +1,856 @@
 <!DOCTYPE html>
 <html lang="es">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Juego de Ahorcado Mejorado en la Farmacia</title>
-  <style>
-    /* RESET Y ESTILOS BASE */
-    body {
-      font-family: Arial, sans-serif;
-      background-color: #f4f4f4;
-      margin: 0;
-      padding: 20px;
-      transition: background-color 0.3s, color 0.3s;
-    }
-    .dark-mode {
-      background-color: #333;
-      color: #eee;
-    }
-    .container {
-      max-width: 1200px;
-      margin: 0 auto;
-      display: flex;
-      flex-wrap: wrap;
-      gap: 20px;
-    }
-    .game-area, .records-area {
-      background-color: #fff;
-      padding: 20px;
-      border-radius: 8px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.1);
-      transition: background-color 0.3s, color 0.3s;
-    }
-    .dark-mode .game-area,
-    .dark-mode .records-area {
-      background-color: #555;
-      color: #eee;
-    }
-    .game-area {
-      flex: 2 1 600px;
-    }
-    .records-area {
-      flex: 1 1 300px;
-    }
-    h1, h2, h3, p { margin: 0; padding: 0; }
-    .word, #message, #timerDisplay, .scoreboard, .current-score {
-      text-align: center;
-      margin: 10px 0;
-    }
-    .word {
-      font-size: 28px;
-      letter-spacing: 5px;
-      margin: 20px 0;
-    }
-    
-    /* ÁREA DE LA IMAGEN Y PISTA (no superpuestas) */
-    .image { text-align: center; margin: 20px 0; }
-    .hint-overlay {
-      display: block;
-      background: rgba(230,230,230,0.9);
-      color: #333;
-      padding: 5px 10px;
-      border: 1px solid #ccc;
-      border-radius: 5px;
-      font-size: 16px;
-      margin-bottom: 10px;
-      text-align: center;
-    }
-    #hangmanImage {
-      transition: opacity 0.5s ease, transform 0.5s ease;
-    }
-    
-    /* TABLA DE LETRAS INCORRECTAS */
-    .wrong-letters {
-      text-align: center;
-      margin-top: 20px;
-    }
-    .wrong-letters table {
-      margin: 0 auto;
-      border-collapse: collapse;
-    }
-    .wrong-letters th, .wrong-letters td {
-      border: 1px solid #ccc;
-      padding: 8px 12px;
-      text-transform: uppercase;
-    }
-    
-    /* TECLADO EN PANTALLA */
-    #keyboardContainer {
-      text-align: center;
-      margin-top: 15px;
-    }
-    #keyboardContainer button {
-      margin: 4px;
-      padding: 10px 14px;
-      font-size: 16px;
-      cursor: pointer;
-      border: 1px solid #aaa;
-      border-radius: 4px;
-      text-transform: uppercase;
-      width: 40px;
-      transition: background 0.2s;
-    }
-    #keyboardContainer button:active { background-color: #ccc; }
-    #keyboardContainer button:disabled {
-      background-color: #ddd;
-      color: #777;
-      cursor: not-allowed;
-    }
-    .dark-mode #keyboardContainer button:disabled {
-      background-color: #888;
-      color: #444;
-    }
-    
-    /* MODAL DE INICIO CON MARCA DE AGUA */
-    .modal {
-      position: fixed;
-      top: 0; left: 0;
-      width: 100%; height: 100%;
-      background: rgba(0,0,0,0.5);
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      z-index: 1000;
-    }
-    .modal-content {
-      position: relative;
-      background: rgba(255,255,255,0.95);
-      padding: 20px;
-      border-radius: 8px;
-      width: 90%; max-width: 400px;
-      text-align: center;
-      overflow: hidden;
-    }
-    .modal-content::before {
-      content: "";
-      position: absolute;
-      top: 0; left: 0; right: 0; bottom: 0;
-      background: url("images/stage7.png") center center no-repeat;
-      background-size: cover;
-      opacity: 0.1;
-      z-index: 0;
-    }
-    .modal-content > * { position: relative; z-index: 1; }
-    .welcome-title {
-      font-size: 48px;
-      text-align: center;
-      margin: 0;
-      color: #333;
-    }
-    .subtitle {
-      font-size: 24px;
-      text-align: center;
-      margin: 10px 0 30px 0;
-      color: #555;
-    }
-    .modal-content input[type="text"],
-    .modal-content select {
-      width: 90%;
-      padding: 8px;
-      margin: 10px 0;
-      font-size: 16px;
-    }
-    .modal-content button {
-      padding: 10px 20px;
-      font-size: 16px;
-      cursor: pointer;
-    }
-    
-    /* TUTORIAL MODAL (se muestra una vez) */
-    #tutorialModal .modal-content { max-width: 500px; }
-    
-    /* CONTROLES DE RONDA (sólo al finalizar) */
-    #roundControls {
-      display: none;
-      text-align: center;
-      margin: 15px 0;
-    }
-    #roundControls button {
-      margin: 5px;
-      padding: 10px 20px;
-      font-size: 16px;
-      cursor: pointer;
-    }
-    
-    /* TABLA DE RÉCORDS */
-    .records-area table {
-      width: 100%;
-      margin-top: 10px;
-      border-collapse: collapse;
-    }
-    .records-area th,
-    .records-area td {
-      border: 1px solid #ccc;
-      padding: 8px;
-      text-align: center;
-    }
-    
-    /* ANIMACIONES */
-    .animate-fadein {
-      animation: fadeIn 0.5s;
-    }
-    @keyframes fadeIn {
-      from { opacity: 0; }
-      to { opacity: 1; }
-    }
-    
-    /* BANNER DE INSTAGRAM */
-    #instagramBanner {
-      position: fixed;
-      bottom: 0;
-      left: 0;
-      width: 100%;
-      background: linear-gradient(to right, #f09433, #e6683c, #dc2743, #cc2366, #bc1888);
-      color: #fff;
-      text-align: center;
-      padding: 10px 0;
-      border-top: 2px solid #fff;
-      z-index: 1500;
-    }
-    #instagramBanner a {
-      text-decoration: none;
-      color: #fff;
-      font-size: 18px;
-      font-weight: bold;
-    }
-    #instagramBanner a:hover { text-decoration: underline; }
-    
-    /* BOTÓN TOGGLE DARK MODE CON EMOTICONOS */
-    #darkModeToggle {
-      position: fixed;
-      top: 20px;
-      right: 20px;
-      padding: 8px 12px;
-      font-size: 24px;
-      z-index: 1100;
-      background: none;
-      border: none;
-      cursor: pointer;
-    }
-    
-    /* MEDIA QUERIES */
-    @media (max-width: 600px) {
-      .welcome-title { font-size: 36px; }
-      .subtitle { font-size: 18px; }
-      .word { font-size: 22px; }
-      #keyboardContainer button {
-        width: 35px;
-        font-size: 14px;
-        padding: 8px 10px;
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Juego de Ahorcado Mejorado en la Farmacia</title>
+    <style>
+      /* RESET Y ESTILOS BASE */
+      body {
+        font-family: Arial, sans-serif;
+        background-color: #f4f4f4;
+        margin: 0;
+        padding: 20px;
+        transition: background-color 0.3s, color 0.3s;
       }
-    }
-  </style>
-</head>
-<body>
-  <!-- Botón Toggle Dark Mode con emoticonos: ☀️ para claro, 🌙 para oscuro -->
-  <button id="darkModeToggle" onclick="toggleDarkMode()">☀️</button>
-
-  <!-- Banner de Instagram -->
-  <div id="instagramBanner">
-    <a href="https://www.instagram.com/farmaciacharallave/" target="_blank">📸 Síguenos en Instagram</a>
-  </div>
-
-  <!-- Modal Tutorial (se muestra solo la primera vez) -->
-  <div id="tutorialModal" class="modal" style="display: none;">
-    <div class="modal-content">
-      <h2>Tutorial</h2>
-      <p>Bienvenido al juego de Ahorcado en la Farmacia Charallave.</p>
-      <p>Utiliza el teclado en pantalla o físico para adivinar la palabra.</p>
-      <p>La pista se mostrará arriba de la imagen; trata de acertar sin errores.</p>
-      <button onclick="closeTutorial()">¡Entendido!</button>
-    </div>
-  </div>
-
-  <!-- Modal de Inicio -->
-  <div id="startModal" class="modal">
-    <div class="modal-content">
-      <h1 class="welcome-title">BIENVENIDO</h1>
-      <p class="subtitle">Juego de Farmacia Charallave</p>
-      <form id="startForm">
-        <div>
-          <label>Modo de Juego:</label><br />
-          <input type="radio" name="mode" value="singleplayer" checked> Solitario
-          <input type="radio" name="mode" value="multiplayer"> Multijugador
-        </div>
-        <div id="multiplayerFields" style="display: none;">
-          <label>Palabra Oculta:</label><br />
-          <input type="text" id="multiplayerWord" maxlength="20"><br />
-          <label>Pista:</label><br />
-          <input type="text" id="multiplayerHint" />
-        </div>
-        <div>
-          <label>Dificultad:</label><br />
-          <select id="difficultySelect">
-            <option value="facil">Fácil</option>
-            <option value="medio">Medio</option>
-            <option value="dificil">Difícil</option>
-            <option value="super facil">Super Fácil</option>
-          </select>
-        </div>
-        <br />
-        <button type="submit">Comenzar Juego</button>
-      </form>
-    </div>
-  </div>
-
-  <!-- Contenedor Principal (se muestra después de iniciar) -->
-  <div class="container" id="gameContainer" style="display: none;">
-    <div class="game-area">
-      <h1>Juego de Ahorcado en la Farmacia</h1>
-      <div class="image">
-        <div id="hintDisplay" class="hint-overlay"></div>
-        <img id="hangmanImage" src="images/stage0.png" alt="Ahorcado" width="200" />
-      </div>
-      <div class="word" id="wordDisplay"></div>
-      <div id="timerDisplay">Tiempo restante: <span id="timeLeft"></span> s</div>
-      <div id="keyboardContainer"></div>
-      <div class="wrong-letters">
-        <h2>Letras Incorrectas</h2>
-        <table id="wrongLettersTable">
-          <tr><th>Letras</th></tr>
-        </table>
-      </div>
-      <div class="scoreboard">
-        <p id="scoreBoard">Victorias: 0 | Derrotas: 0</p>
-      </div>
-      <!-- Controles de Ronda: aparecen al finalizar cada palabra -->
-      <div id="roundControls">
-        <button id="nextButton" onclick="nextRound()">Siguiente</button>
-        <button id="restartButton" onclick="restartGame()">Reiniciar Partida</button>
-      </div>
-      <p id="message"></p>
-      <div class="current-score" id="currentScoreDisplay"></div>
-    </div>
-    <div class="records-area">
-      <h2>Récords</h2>
-      <div style="text-align: center;">
-        <input id="recordName" type="text" placeholder="Tu Nombre" />
-        <button onclick="saveRecord()">Guardar Récord</button>
-      </div>
-      <table id="recordsTable">
-        <tr>
-          <th>Nombre</th>
-          <th>Puntaje</th>
-          <th>Fecha</th>
-        </tr>
-      </table>
-      <div id="statsDisplay" style="margin-top: 20px;">
-        <h3>Estadísticas</h3>
-        <p id="overallStats">Total Partidas: 0 | Victorias: 0 | Derrotas: 0 | Tiempo Promedio: 0 s</p>
-      </div>
-    </div>
-  </div>
-
-  <!-- Modal Detalle de Récord -->
-  <div id="recordDetailModal" class="modal" style="display: none;">
-    <div class="modal-content">
-      <h2>Detalle del Récord</h2>
-      <p id="recordDetailContent"></p>
-      <button onclick="closeRecordDetail()">Cerrar</button>
-    </div>
-  </div>
-
-  <!-- Elementos de audio -->
-  <audio id="audio-correct" src="sounds/correct.mp3"></audio>
-  <audio id="audio-wrong" src="sounds/wrong.mp3"></audio>
-  <audio id="audio-gameover" src="sounds/gameover.mp3"></audio>
-
-  <script>
-    /* VARIABLES GLOBALES Y ESTADÍSTICAS */
-    let totalGames = 0, totalWins = 0, totalLosses = 0, totalTimeSpent = 0;
-    let totalScore = 0; // Puntaje acumulativo
-
-    // Botón Toggle Dark Mode con emoticonos
-    function toggleDarkMode() {
-      document.body.classList.toggle("dark-mode");
-      const btn = document.getElementById("darkModeToggle");
-      btn.innerHTML = document.body.classList.contains("dark-mode") ? "🌙" : "☀️";
-    }
-
-    /* Gestión de Récords */
-    function loadRecords() {
-      const data = localStorage.getItem("hangmanRecords");
-      return data ? JSON.parse(data) : [];
-    }
-    function saveRecords(records) {
-      localStorage.setItem("hangmanRecords", JSON.stringify(records));
-    }
-    function updateRecordsTable() {
-      const records = loadRecords();
-      const table = document.getElementById("recordsTable");
-      let rows = "<tr><th>Nombre</th><th>Puntaje</th><th>Fecha</th></tr>";
-      records.forEach(r => {
-        // Se añaden atributos de datos para mostrar detalles al hacer click
-        rows += `<tr>
-          <td class="recordName" 
-              data-recordname="${r.name}"
-              data-totalgames="${r.totalGames}"
-              data-totalwins="${r.totalWins}"
-              data-totallosses="${r.totalLosses}"
-              data-totaltime="${r.totalTimeSpent}">
-              ${r.name}
-          </td>
-          <td>${r.score}</td>
-          <td>${r.date}</td>
-        </tr>`;
-      });
-      table.innerHTML = rows;
+      .dark-mode {
+        background-color: #333;
+        color: #eee;
+      }
+      .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 20px;
+      }
+      .game-area,
+      .records-area {
+        background-color: #fff;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        transition: background-color 0.3s, color 0.3s;
+      }
+      .dark-mode .game-area,
+      .dark-mode .records-area {
+        background-color: #555;
+        color: #eee;
+      }
+      .game-area {
+        flex: 2 1 600px;
+      }
+      .records-area {
+        flex: 1 1 300px;
+      }
+      h1,
+      h2,
+      h3,
+      p {
+        margin: 0;
+        padding: 0;
+      }
+      .word,
+      #message,
+      #timerDisplay,
+      .scoreboard,
+      .current-score {
+        text-align: center;
+        margin: 10px 0;
+      }
+      .word {
+        font-size: 28px;
+        letter-spacing: 5px;
+        margin: 20px 0;
+      }
       
-      // Se asigna el evento click a cada celda del nombre para mostrar detalles
-      let recordElems = document.getElementsByClassName("recordName");
-      for (let i = 0; i < recordElems.length; i++) {
-        recordElems[i].addEventListener("click", showRecordDetail);
+      /* ÁREA DE LA IMAGEN Y PISTA (no superpuestas) */
+      .image {
+        text-align: center;
+        margin: 20px 0;
       }
-    }
-    function saveRecord() {
-      const name = document.getElementById("recordName").value.trim();
-      if (!name) {
-        alert("Ingresa un nombre válido.");
-        return;
+      .hint-overlay {
+        display: block;
+        background: rgba(230,230,230,0.9);
+        color: #333;
+        padding: 5px 10px;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        font-size: 16px;
+        margin-bottom: 10px;
+        text-align: center;
       }
-      const record = {
-        name: name,
-        score: totalScore, // Puntaje acumulativo
-        date: new Date().toLocaleString(),
-        totalGames: totalGames,
-        totalWins: totalWins,
-        totalLosses: totalLosses,
-        totalTimeSpent: totalTimeSpent
-      };
-      const records = loadRecords();
-      records.push(record);
-      records.sort((a, b) => b.score - a.score);
-      saveRecords(records);
-      updateRecordsTable();
-      document.getElementById("recordName").value = "";
-    }
-    function updateStatsDisplay() {
-      const avgTime = totalGames > 0 ? (totalTimeSpent / totalGames).toFixed(1) : 0;
-      document.getElementById("overallStats").textContent =
-        `Total Partidas: ${totalGames} | Victorias: ${totalWins} | Derrotas: ${totalLosses} | Tiempo Promedio: ${avgTime} s`;
-    }
+      #hangmanImage {
+        transition: opacity 0.5s ease, transform 0.5s ease;
+      }
+      
+      /* TABLA DE LETRAS INCORRECTAS */
+      .wrong-letters {
+        text-align: center;
+        margin-top: 20px;
+      }
+      .wrong-letters table {
+        margin: 0 auto;
+        border-collapse: collapse;
+      }
+      .wrong-letters th,
+      .wrong-letters td {
+        border: 1px solid #ccc;
+        padding: 8px 12px;
+        text-transform: uppercase;
+      }
+      
+      /* TECLADO EN PANTALLA */
+      #keyboardContainer {
+        text-align: center;
+        margin-top: 15px;
+      }
+      #keyboardContainer button {
+        margin: 4px;
+        padding: 10px 14px;
+        font-size: 16px;
+        cursor: pointer;
+        border: 1px solid #aaa;
+        border-radius: 4px;
+        text-transform: uppercase;
+        width: 40px;
+        transition: background 0.2s;
+      }
+      #keyboardContainer button:active {
+        background-color: #ccc;
+      }
+      #keyboardContainer button:disabled {
+        background-color: #ddd;
+        color: #777;
+        cursor: not-allowed;
+      }
+      .dark-mode #keyboardContainer button:disabled {
+        background-color: #888;
+        color: #444;
+      }
+      
+      /* MODAL DE INICIO CON MARCA DE AGUA */
+      .modal {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.5);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 1000;
+      }
+      .modal-content {
+        position: relative;
+        background: rgba(255,255,255,0.95);
+        padding: 20px;
+        border-radius: 8px;
+        width: 90%;
+        max-width: 400px;
+        text-align: center;
+        overflow: hidden;
+      }
+      .modal-content::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: url("images/stage7.png") center center no-repeat;
+        background-size: cover;
+        opacity: 0.1;
+        z-index: 0;
+      }
+      .modal-content > * {
+        position: relative;
+        z-index: 1;
+      }
+      .welcome-title {
+        font-size: 48px;
+        text-align: center;
+        margin: 0;
+        color: #333;
+      }
+      .subtitle {
+        font-size: 24px;
+        text-align: center;
+        margin: 10px 0 30px 0;
+        color: #555;
+      }
+      .modal-content input[type="text"],
+      .modal-content select {
+        width: 90%;
+        padding: 8px;
+        margin: 10px 0;
+        font-size: 16px;
+      }
+      .modal-content button {
+        padding: 10px 20px;
+        font-size: 16px;
+        cursor: pointer;
+      }
+      
+      /* TUTORIAL MODAL (se muestra una vez) */
+      #tutorialModal .modal-content {
+        max-width: 500px;
+      }
+      
+      /* CONTROLES DE RONDA (solo al finalizar cada palabra) */
+      #roundControls {
+        display: none;
+        text-align: center;
+        margin: 15px 0;
+      }
+      #roundControls button {
+        margin: 5px;
+        padding: 10px 20px;
+        font-size: 16px;
+        cursor: pointer;
+      }
+      
+      /* TABLA DE RÉCORDS */
+      .records-area table {
+        width: 100%;
+        margin-top: 10px;
+        border-collapse: collapse;
+      }
+      .records-area th,
+      .records-area td {
+        border: 1px solid #ccc;
+        padding: 8px;
+        text-align: center;
+      }
+      
+      /* ANIMACIONES */
+      .animate-fadein {
+        animation: fadeIn 0.5s;
+      }
+      @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+      }
+      
+      /* BANNER DE INSTAGRAM */
+      #instagramBanner {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        background: linear-gradient(to right, #f09433, #e6683c, #dc2743, #cc2366, #bc1888);
+        color: #fff;
+        text-align: center;
+        padding: 10px 0;
+        border-top: 2px solid #fff;
+        z-index: 1500;
+      }
+      #instagramBanner a {
+        text-decoration: none;
+        color: #fff;
+        font-size: 18px;
+        font-weight: bold;
+      }
+      #instagramBanner a:hover { text-decoration: underline; }
+      
+      /* BOTÓN TOGGLE DARK MODE CON EMOTICONOS */
+      #darkModeToggle {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        padding: 8px 12px;
+        font-size: 24px;
+        z-index: 1100;
+        background: none;
+        border: none;
+        cursor: pointer;
+      }
+      
+      /* MEDIA QUERIES */
+      @media (max-width: 600px) {
+        .welcome-title { font-size: 36px; }
+        .subtitle { font-size: 18px; }
+        .word { font-size: 22px; }
+        #keyboardContainer button {
+          width: 35px; font-size: 14px; padding: 8px 10px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Botón Toggle Dark Mode -->
+    <button id="darkModeToggle" onclick="toggleDarkMode()">☀️</button>
+    
+    <!-- Banner de Instagram -->
+    <div id="instagramBanner">
+      <a href="https://www.instagram.com/farmaciacharallave/" target="_blank">📸 Síguenos en Instagram</a>
+    </div>
+    
+    <!-- Modal Tutorial (solo la primera vez) -->
+    <div id="tutorialModal" class="modal" style="display: none;">
+      <div class="modal-content">
+        <h2>Tutorial</h2>
+        <p>Bienvenido al juego de Ahorcado en la Farmacia Charallave.</p>
+        <p>Utiliza el teclado en pantalla o el físico para adivinar la palabra.</p>
+        <p>La pista se mostrará arriba de la imagen; trata de acertar sin errores.</p>
+        <button onclick="closeTutorial()">¡Entendido!</button>
+      </div>
+    </div>
+    
+    <!-- Modal de Inicio -->
+    <div id="startModal" class="modal">
+      <div class="modal-content">
+        <h1 class="welcome-title">BIENVENIDO</h1>
+        <p class="subtitle">Juego de Farmacia Charallave</p>
+        <form id="startForm">
+          <div>
+            <label>Modo de Juego:</label><br />
+            <input type="radio" name="mode" value="singleplayer" checked> Solitario
+            <input type="radio" name="mode" value="multiplayer"> Multijugador
+          </div>
+          <div id="multiplayerFields" style="display: none;">
+            <label>Palabra Oculta:</label><br />
+            <input type="text" id="multiplayerWord" maxlength="20"><br />
+            <label>Pista:</label><br />
+            <input type="text" id="multiplayerHint" />
+          </div>
+          <div>
+            <label>Dificultad:</label><br />
+            <select id="difficultySelect">
+              <option value="facil">Fácil</option>
+              <option value="medio">Medio</option>
+              <option value="dificil">Difícil</option>
+              <option value="super facil">Super Fácil</option>
+            </select>
+          </div>
+          <br />
+          <button type="submit">Comenzar Juego</button>
+        </form>
+      </div>
+    </div>
+    
+    <!-- Contenedor Principal (aparece después de iniciar) -->
+    <div class="container" id="gameContainer" style="display: none;">
+      <div class="game-area">
+        <h1>Juego de Ahorcado en la Farmacia</h1>
+        <div class="image">
+          <div id="hintDisplay" class="hint-overlay"></div>
+          <img id="hangmanImage" src="images/stage0.png" alt="Ahorcado" width="200" />
+        </div>
+        <div class="word" id="wordDisplay"></div>
+        <div id="timerDisplay">Tiempo restante: <span id="timeLeft"></span> s</div>
+        <div id="keyboardContainer"></div>
+        <div class="wrong-letters">
+          <h2>Letras Incorrectas</h2>
+          <table id="wrongLettersTable">
+            <tr><th>Letras</th></tr>
+          </table>
+        </div>
+        <div class="scoreboard">
+          <p id="scoreBoard">Victorias: 0 | Derrotas: 0</p>
+        </div>
+        <!-- Controles de Ronda: Solo aparecen al finalizar cada palabra -->
+        <div id="roundControls">
+          <button id="nextButton" onclick="nextRound()">Siguiente</button>
+          <button id="restartButton" onclick="restartGame()">Reiniciar Partida</button>
+        </div>
+        <p id="message"></p>
+        <div class="current-score" id="currentScoreDisplay"></div>
+      </div>
+      <div class="records-area">
+        <h2>Récords</h2>
+        <div style="text-align: center;">
+          <input id="recordName" type="text" placeholder="Tu Nombre" />
+          <button onclick="saveRecord()">Guardar Récord</button>
+        </div>
+        <table id="recordsTable">
+          <tr>
+            <th>Nombre</th>
+            <th>Puntaje</th>
+            <th>Fecha</th>
+          </tr>
+        </table>
+        <div id="statsDisplay" style="margin-top: 20px;">
+          <h3>Estadísticas</h3>
+          <p id="overallStats">Total Partidas: 0 | Victorias: 0 | Derrotas: 0 | Tiempo Promedio: 0 s</p>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Modal Detalle de Récord -->
+    <div id="recordDetailModal" class="modal" style="display: none;">
+      <div class="modal-content">
+        <h2>Detalle del Récord</h2>
+        <p id="recordDetailContent"></p>
+        <button onclick="closeRecordDetail()">Cerrar</button>
+      </div>
+    </div>
+    
+    <!-- Elementos de audio -->
+    <audio id="audio-correct" src="sounds/correct.mp3"></audio>
+    <audio id="audio-wrong" src="sounds/wrong.mp3"></audio>
+    <audio id="audio-gameover" src="sounds/gameover.mp3"></audio>
+    
+    <script>
+      /* VARIABLES GLOBALES Y ESTADÍSTICAS */
+      let totalGames = 0, totalWins = 0, totalLosses = 0, totalTimeSpent = 0;
+      let totalScore = 0; // Puntaje acumulativo
 
-    /* Modal Detalle de Récord */
-    function showRecordDetail(event) {
-      const elem = event.currentTarget;
-      const recordName = elem.getAttribute("data-recordname");
-      const totalGamesRecord = parseInt(elem.getAttribute("data-totalgames"));
-      const totalWinsRecord = parseInt(elem.getAttribute("data-totalwins"));
-      const totalLossesRecord = parseInt(elem.getAttribute("data-totallosses"));
-      const totalTimeSpentRecord = parseInt(elem.getAttribute("data-totaltime"));
-      const avgTime = totalGamesRecord > 0 ? (totalTimeSpentRecord / totalGamesRecord).toFixed(1) : 0;
-      const detailContent = document.getElementById("recordDetailContent");
-      detailContent.innerHTML = `<strong>${recordName}</strong><br>
-         Tiempo Promedio: ${avgTime} s<br>
-         Total Partidas: ${totalGamesRecord}<br>
-         Victorias: ${totalWinsRecord}<br>
-         Derrotas: ${totalLossesRecord}`;
-      document.getElementById("recordDetailModal").style.display = "flex";
-    }
-    function closeRecordDetail() {
-      document.getElementById("recordDetailModal").style.display = "none";
-    }
+      // Toggle Dark Mode con emoticonos
+      function toggleDarkMode() {
+        document.body.classList.toggle("dark-mode");
+        const btn = document.getElementById("darkModeToggle");
+        btn.innerHTML = document.body.classList.contains("dark-mode") ? "🌙" : "☀️";
+      }
 
-    /* Teclado en pantalla */
-    const alphabet = "abcdefghijklmnopqrstuvwxyzñ".split("");
-    function buildKeyboard() {
-      const container = document.getElementById("keyboardContainer");
-      container.innerHTML = "";
-      alphabet.forEach(letter => {
-        const btn = document.createElement("button");
-        btn.textContent = letter;
-        btn.id = "key_" + letter;
-        btn.addEventListener("click", () => {
-          if(navigator.vibrate) { navigator.vibrate(50); }
-          game.submitGuess(letter);
+      /* Gestión de Récords */
+      function loadRecords() {
+        const data = localStorage.getItem("hangmanRecords");
+        return data ? JSON.parse(data) : [];
+      }
+      function saveRecords(records) {
+        localStorage.setItem("hangmanRecords", JSON.stringify(records));
+      }
+      function updateRecordsTable() {
+        const records = loadRecords();
+        const table = document.getElementById("recordsTable");
+        let rows = "<tr><th>Nombre</th><th>Puntaje</th><th>Fecha</th></tr>";
+        records.forEach(r => {
+          // Se incluyen atributos de datos para ver detalles al hacer clic en el nombre
+          rows += `<tr>
+            <td class="recordName" 
+                data-recordname="${r.name}"
+                data-totalgames="${r.totalGames}"
+                data-totalwins="${r.totalWins}"
+                data-totallosses="${r.totalLosses}"
+                data-totaltime="${r.totalTimeSpent}">
+                ${r.name}
+            </td>
+            <td>${r.score}</td>
+            <td>${r.date}</td>
+          </tr>`;
         });
-        container.appendChild(btn);
-      });
-    }
-    function resetKeyboard() {
-      alphabet.forEach(letter => {
-        const btn = document.getElementById("key_" + letter);
-        if (btn) btn.disabled = false;
-      });
-    }
-
-    /* Tutorial Modal */
-    function closeTutorial() {
-      document.getElementById("tutorialModal").style.display = "none";
-      localStorage.setItem("tutorialSeen", "true");
-      // Inicia el temporizador si aplica
-      if (game && game.turnTime > 0) {
-        game.startTurnTimer();
-      }
-    }
-
-    /* Controles de Ronda */
-    function nextRound() {
-      document.getElementById("roundControls").style.display = "none";
-      game.resetGame();
-    }
-    function restartGame() {
-      document.getElementById("roundControls").style.display = "none";
-      game.wins = 0;
-      game.losses = 0;
-      totalScore = 0;
-      totalGames = 0;
-      totalWins = 0;
-      totalLosses = 0;
-      totalTimeSpent = 0;
-      game.availableWords = [...game.words]; // Reinicia la lista completa
-      game.resetGame();
-      game.updateScoreBoard();
-      updateStatsDisplay();
-    }
-
-    /* Clase principal del Juego */
-    class HangmanGame {
-      constructor(options) {
-        this.mode = options.mode;
-        this.difficulty = options.difficulty;
-        this.customWord = options.customWord || "";
-        this.customHint = options.customHint || "";
-        switch (this.difficulty) {
-          case "facil":
-            this.maxAttempts = 8;
-            this.turnTime = 15;
-            this.alwaysShowHint = true;
-            break;
-          case "medio":
-            this.maxAttempts = 6;
-            this.turnTime = 10;
-            this.alwaysShowHint = false;
-            break;
-          case "dificil":
-            this.maxAttempts = 4;
-            this.turnTime = 7;
-            this.alwaysShowHint = false;
-            break;
-          case "super facil":
-            this.maxAttempts = 8;
-            this.turnTime = 0;
-            this.alwaysShowHint = true;
-            break;
-          default:
-            this.maxAttempts = 6;
-            this.turnTime = 10;
-            this.alwaysShowHint = false;
+        table.innerHTML = rows;
+        // Asigna evento click para ver detalle del record
+        let recordElems = document.getElementsByClassName("recordName");
+        for (let i = 0; i < recordElems.length; i++) {
+          recordElems[i].addEventListener("click", showRecordDetail);
         }
-        this.words = [
-          "atamel", "longacef", "miovit", "colypan", "aciclovir",
-          "alpram", "levotiroxina", "candesartan", "propofol", "prurica",
-          "paracetamol", "ibuprofeno", "amoxicilina", "omeprazol", "dipirona",
-          "metformina", "captopril", "simvastatina", "loratadina", "azitromicina"
-        ];
-        this.hints = {
-          atamel: "Alivia dolores leves a moderados.",
-          longacef: "Antibiótico para infecciones respiratorias.",
-          miovit: "Suplemento vitamínico para el organismo.",
-          colypan: "Se usa para tratar la hipertensión.",
-          aciclovir: "Combate infecciones por el herpes.",
-          alpram: "Para crisis de ansiedad y epilepsia.",
-          levotiroxina: "Esencial en el hipotiroidismo.",
-          candesartan: "Controla la presión arterial alta.",
-          propofol: "Anestésico para procedimientos médicos.",
-          prurica: "Alivia el prurito en afecciones cutáneas.",
-          paracetamol: "Alivia el dolor y reduce la fiebre.",
-          ibuprofeno: "Antiinflamatorio y analgésico.",
-          amoxicilina: "Para diversas infecciones bacterianas.",
-          omeprazol: "Reduce la acidez estomacal y trata úlceras.",
-          dipirona: "Antipirético y analgésico para fiebre.",
-          metformina: "De primera línea para la diabetes tipo 2.",
-          captopril: "Reduce la presión arterial al inhibir la ACE.",
-          simvastatina: "Disminuye el colesterol en la sangre.",
-          loratadina: "Antihistamínico contra alergias.",
-          azitromicina: "Antibiótico para infecciones respiratorias."
+      }
+      function saveRecord() {
+        const name = document.getElementById("recordName").value.trim();
+        if (!name) { alert("Ingresa un nombre válido."); return; }
+        const record = {
+          name: name,
+          score: totalScore, // Puntaje acumulativo
+          date: new Date().toLocaleString(),
+          totalGames: totalGames,
+          totalWins: totalWins,
+          totalLosses: totalLosses,
+          totalTimeSpent: totalTimeSpent
         };
-        this.availableWords = [...this.words];
-        this.wins = 0;
-        this.losses = 0;
-        this.resetGame();
-        this.updateScoreBoard();
+        const records = loadRecords();
+        records.push(record);
+        records.sort((a, b) => b.score - a.score);
+        saveRecords(records);
+        updateRecordsTable();
+        document.getElementById("recordName").value = "";
+      }
+      function updateStatsDisplay() {
+        const avgTime = totalGames > 0 ? (totalTimeSpent / totalGames).toFixed(1) : 0;
+        document.getElementById("overallStats").textContent =
+          `Total Partidas: ${totalGames} | Victorias: ${totalWins} | Derrotas: ${totalLosses} | Tiempo Promedio: ${avgTime} s`;
       }
 
-      resetGame() {
-        this.stopTurnTimer();
-        if (this.mode === "singleplayer") {
-          if (this.availableWords.length === 0) {
-            this.availableWords = [...this.words];
-            alert("Has completado todas las palabras. Reiniciando la lista.");
-          }
-          let idx = Math.floor(Math.random() * this.availableWords.length);
-          this.word = this.availableWords[idx];
-          this.availableWords.splice(idx, 1);
-          this.currentHint = this.hints[this.word];
-        } else {
-          this.word = this.customWord.toLowerCase();
-          this.currentHint = this.customHint;
-        }
-        this.attempts = 0;
-        this.guessedWord = Array(this.word.length).fill("_");
-        if (this.difficulty === "super facil") {
-          let revealed = [];
-          while (revealed.length < 3 && revealed.length < this.word.length) {
-            let i = Math.floor(Math.random() * this.word.length);
-            if (!revealed.includes(i)) { revealed.push(i); this.guessedWord[i] = this.word[i]; }
-          }
-        }
-        this.wrongLetters = [];
-        this.hintShown = false;
-        this.currentScore = 0;
-        this.startTime = new Date();
-        this.updateWordDisplay();
-        this.updateWrongLettersTable();
-        this.updateHangmanImage();
-        this.setMessage("");
-        document.getElementById("currentScoreDisplay").textContent = "";
-        document.getElementById("hintDisplay").textContent = this.alwaysShowHint ? this.currentHint : "";
-        resetKeyboard();
-        if (this.turnTime > 0) {
-          // Solo inicia el contador si el tutorial ya se cerró
-          if (!document.getElementById("tutorialModal").style.display || document.getElementById("tutorialModal").style.display === "none") {
-            this.startTurnTimer();
-          }
-        } else {
-          document.getElementById("timeLeft").textContent = "--";
-        }
+      /* Modal Detalle de Récord */
+      function showRecordDetail(event) {
+        const elem = event.currentTarget;
+        const recordName = elem.getAttribute("data-recordname");
+        const totalGamesRecord = parseInt(elem.getAttribute("data-totalgames"));
+        const totalWinsRecord = parseInt(elem.getAttribute("data-totalwins"));
+        const totalLossesRecord = parseInt(elem.getAttribute("data-totallosses"));
+        const totalTimeSpentRecord = parseInt(elem.getAttribute("data-totaltime"));
+        const avgTime = totalGamesRecord > 0 ? (totalTimeSpentRecord / totalGamesRecord).toFixed(1) : 0;
+        const detailContent = document.getElementById("recordDetailContent");
+        detailContent.innerHTML = `<strong>${recordName}</strong><br>
+           Tiempo Promedio: ${avgTime} s<br>
+           Total Partidas: ${totalGamesRecord}<br>
+           Victorias: ${totalWinsRecord}<br>
+           Derrotas: ${totalLossesRecord}`;
+        document.getElementById("recordDetailModal").style.display = "flex";
+      }
+      function closeRecordDetail() {
+        document.getElementById("recordDetailModal").style.display = "none";
       }
 
-      updateWordDisplay() {
-        const wd = document.getElementById("wordDisplay");
-        wd.textContent = this.guessedWord.join(" ");
-        wd.classList.add("animate-fadein");
-        setTimeout(() => wd.classList.remove("animate-fadein"), 500);
-      }
-
-      updateWrongLettersTable() {
-        const table = document.getElementById("wrongLettersTable");
-        let row = "<tr><th>Letras</th></tr><tr>" + this.wrongLetters.map(l => `<td>${l}</td>`).join("") + "</tr>";
-        table.innerHTML = row;
-        table.classList.add("animate-fadein");
-        setTimeout(() => table.classList.remove("animate-fadein"), 500);
-      }
-
-      setMessage(msg) {
-        const msgEl = document.getElementById("message");
-        msgEl.textContent = msg;
-        msgEl.classList.add("animate-fadein");
-        setTimeout(() => msgEl.classList.remove("animate-fadein"), 500);
-      }
-
-      updateHangmanImage() {
-        const img = document.getElementById("hangmanImage");
-        img.src = `images/stage${this.attempts}.png`;
-        img.classList.add("animate-fadein");
-        setTimeout(() => img.classList.remove("animate-fadein"), 500);
-      }
-
-      calculateScore() {
-        return this.guessedWord.includes("_") ? 0 : (this.maxAttempts - this.attempts) * 10;
-      }
-
-      submitGuess(letter) {
-        if (this.attempts >= this.maxAttempts || !this.guessedWord.includes("_"))
-          return;
-        if (this.guessedWord.includes(letter) || this.wrongLetters.includes(letter)) {
-          this.setMessage("Ya has ingresado esa letra.");
-          return;
-        }
-        this.stopTurnTimer();
-        if (this.word.includes(letter)) {
-          this.word.split("").forEach((char, i) => {
-            if (char === letter) { this.guessedWord[i] = letter; }
+      /* Teclado en pantalla */
+      const alphabet = "abcdefghijklmnopqrstuvwxyzñ".split("");
+      function buildKeyboard() {
+        const container = document.getElementById("keyboardContainer");
+        container.innerHTML = "";
+        alphabet.forEach(letter => {
+          const btn = document.createElement("button");
+          btn.textContent = letter;
+          btn.id = "key_" + letter;
+          btn.addEventListener("click", () => {
+            if (navigator.vibrate) { navigator.vibrate(50); }
+            game.submitGuess(letter);
           });
-          this.updateWordDisplay();
-          document.getElementById("audio-correct").play();
-          if (!this.guessedWord.includes("_")) {
-            this.currentScore = this.calculateScore();
-            totalScore += this.currentScore;  // Acumula el puntaje total
-            this.setMessage(`¡Felicidades! Ganaste. Puntaje total: ${totalScore}`);
-            document.getElementById("currentScoreDisplay").textContent = `Puntaje acumulado: ${totalScore}`;
-            this.wins++;
-            this.updateScoreBoard();
-            // Muestra controles para continuar la ronda
-            document.getElementById("roundControls").style.display = "block";
-            this.stopTurnTimer();
-            this.endGame();
-            return;
-          }
-        } else {
-          this.wrongLetters.push(letter);
-          this.updateWrongLettersTable();
-          this.attempts++;
-          this.updateHangmanImage();
-          document.getElementById("audio-wrong").play();
-          if (!this.alwaysShowHint && !this.hintShown && this.attempts >= 3 && this.mode === "singleplayer") {
-            document.getElementById("hintDisplay").textContent = this.currentHint;
-            this.hintShown = true;
-          }
-          if (this.attempts === this.maxAttempts) {
-            this.currentScore = 0;
-            this.setMessage(`¡Game Over! La palabra era "${this.word}". Puntaje total: ${totalScore}`);
-            document.getElementById("hangmanImage").src = "images/stage" + this.maxAttempts + ".png";
-            this.losses++;
-            this.updateScoreBoard();
-            document.getElementById("currentScoreDisplay").textContent = `Puntaje acumulado: ${totalScore}`;
-            document.getElementById("audio-gameover").play();
-            // Muestra controles para continuar la ronda
-            document.getElementById("roundControls").style.display = "block";
-            this.stopTurnTimer();
-            this.endGame();
-            return;
-          }
-        }
-        if (this.turnTime > 0) {
-          this.startTurnTimer();
+          container.appendChild(btn);
+        });
+      }
+      function resetKeyboard() {
+        alphabet.forEach(letter => {
+          const btn = document.getElementById("key_" + letter);
+          if (btn) btn.disabled = false;
+        });
+      }
+
+      /* Tutorial Modal */
+      function closeTutorial() {
+        document.getElementById("tutorialModal").style.display = "none";
+        localStorage.setItem("tutorialSeen", "true");
+        if (game && game.turnTime > 0) {
+          game.startTurnTimer();
         }
       }
 
-      updateScoreBoard() {
-        const sb = document.getElementById("scoreBoard");
-        sb.textContent = `Victorias: ${this.wins} | Derrotas: ${this.losses}`;
-        sb.classList.add("animate-fadein");
-        setTimeout(() => sb.classList.remove("animate-fadein"), 500);
+      /* Controles de Ronda */
+      function nextRound() {
+        document.getElementById("roundControls").style.display = "none";
+        game.resetGame();
       }
-
-      startTurnTimer() {
-        if (this.turnTime <= 0) return;
-        this.remainingTime = this.turnTime;
-        document.getElementById("timeLeft").textContent = this.remainingTime;
-        this.timerInterval = setInterval(() => {
-          this.remainingTime--;
-          document.getElementById("timeLeft").textContent = this.remainingTime;
-          if (this.remainingTime <= 0) {
-            clearInterval(this.timerInterval);
-            this.setMessage("¡Tiempo agotado! Se cuenta como error.");
-            let dummy = "z";
-            for (let l of alphabet) {
-              if (!this.guessedWord.includes(l) && !this.wrongLetters.includes(l)) { dummy = l; break; }
-            }
-            this.submitGuess(dummy);
-          }
-        }, 1000);
-      }
-
-      stopTurnTimer() {
-        clearInterval(this.timerInterval);
-      }
-
-      endGame() {
-        const gameDuration = Math.floor((new Date() - this.startTime) / 1000);
-        totalGames++;
-        if (this.currentScore > 0) {
-          totalWins++;
-        } else {
-          totalLosses++;
-        }
-        totalTimeSpent += gameDuration;
+      function restartGame() {
+        document.getElementById("roundControls").style.display = "none";
+        game.wins = 0;
+        game.losses = 0;
+        totalScore = 0;
+        totalGames = 0;
+        totalWins = 0;
+        totalLosses = 0;
+        totalTimeSpent = 0;
+        game.availableWords = [...game.words];  // Reinicia la lista completa
+        game.resetGame();
+        game.updateScoreBoard();
         updateStatsDisplay();
       }
-    }
 
-    let game;
-
-    document.getElementById("startForm").addEventListener("submit", function(e) {
-      e.preventDefault();
-      const mode = document.querySelector('input[name="mode"]:checked').value;
-      const difficulty = document.getElementById("difficultySelect").value;
-      let customWord = "", customHint = "";
-      if (mode === "multiplayer") {
-        customWord = document.getElementById("multiplayerWord").value.trim();
-        customHint = document.getElementById("multiplayerHint").value.trim();
-        if (!customWord || !customHint) {
-          alert("Por favor, ingresa tanto la palabra como la pista para el modo multijugador.");
-          return;
+      /* Clase principal del Juego */
+      class HangmanGame {
+        constructor(options) {
+          this.mode = options.mode; // "singleplayer" o "multiplayer"
+          this.difficulty = options.difficulty; // "facil", "medio", "dificil", "super facil"
+          this.customWord = options.customWord || "";
+          this.customHint = options.customHint || "";
+          switch (this.difficulty) {
+            case "facil":
+              this.maxAttempts = 8;
+              this.turnTime = 15;
+              this.alwaysShowHint = true;
+              break;
+            case "medio":
+              this.maxAttempts = 6;
+              this.turnTime = 10;
+              this.alwaysShowHint = false;
+              break;
+            case "dificil":
+              this.maxAttempts = 4;
+              this.turnTime = 7;
+              this.alwaysShowHint = false;
+              break;
+            case "super facil":
+              this.maxAttempts = 8;
+              this.turnTime = 0;
+              this.alwaysShowHint = true;
+              break;
+            default:
+              this.maxAttempts = 6;
+              this.turnTime = 10;
+              this.alwaysShowHint = false;
+          }
+          this.words = [
+            "atamel",
+            "longacef",
+            "miovit",
+            "colypan",
+            "aciclovir",
+            "alpram",
+            "levotiroxina",
+            "candesartan",
+            "propofol",
+            "prurica",
+            "paracetamol",
+            "ibuprofeno",
+            "amoxicilina",
+            "omeprazol",
+            "dipirona",
+            "metformina",
+            "captopril",
+            "simvastatina",
+            "loratadina",
+            "azitromicina"
+          ];
+          this.hints = {
+            atamel: "Alivia dolores leves a moderados.",
+            longacef: "Antibiótico para infecciones respiratorias.",
+            miovit: "Suplemento vitamínico para el organismo.",
+            colypan: "Se usa para tratar la hipertensión.",
+            aciclovir: "Combate infecciones por el herpes.",
+            alpram: "Para crisis de ansiedad y epilepsia.",
+            levotiroxina: "Esencial en el hipotiroidismo.",
+            candesartan: "Controla la presión arterial alta.",
+            propofol: "Anestésico para procedimientos médicos.",
+            prurica: "Alivia el prurito en afecciones cutáneas.",
+            paracetamol: "Alivia el dolor y reduce la fiebre.",
+            ibuprofeno: "Antiinflamatorio y analgésico.",
+            amoxicilina: "Para diversas infecciones bacterianas.",
+            omeprazol: "Reduce la acidez estomacal y trata úlceras.",
+            dipirona: "Antipirético y analgésico para fiebre.",
+            metformina: "De primera línea para la diabetes tipo 2.",
+            captopril: "Reduce la presión arterial al inhibir la ACE.",
+            simvastatina: "Disminuye el colesterol en la sangre.",
+            loratadina: "Antihistamínico contra alergias.",
+            azitromicina: "Antibiótico para infecciones respiratorias."
+          };
+          this.availableWords = [...this.words];
+          this.wins = 0;
+          this.losses = 0;
+          this.resetGame();
+          this.updateScoreBoard();
         }
-      }
-      document.getElementById("startModal").style.display = "none";
-      document.getElementById("gameContainer").style.display = "flex";
-      // Muestra el Tutorial solo la primera vez
-      if (!localStorage.getItem("tutorialSeen")) {
-        document.getElementById("tutorialModal").style.display = "flex";
-      } else if (game && game.turnTime > 0) {
-        game.startTurnTimer();
-      }
-      buildKeyboard();
-      game = new HangmanGame({ mode, difficulty, customWord, customHint });
-    });
 
-    document.querySelectorAll('input[name="mode"]').forEach(radio => {
-      radio.addEventListener("change", function() {
-        document.getElementById("multiplayerFields").style.display =
-          this.value === "multiplayer" ? "block" : "none";
-      });
-    });
-
-    document.addEventListener("keydown", function(e) {
-      const letter = e.key.toLowerCase();
-      if (alphabet.includes(letter)) {
-        const btn = document.getElementById("key_" + letter);
-        if (btn && !btn.disabled) {
-          btn.disabled = true;
-          if (game) {
-            game.submitGuess(letter);
+        resetGame() {
+          this.stopTurnTimer();
+          if (this.mode === "singleplayer") {
+            if (this.availableWords.length === 0) {
+              this.availableWords = [...this.words];
+              alert("Has completado todas las palabras. Reiniciando la lista.");
+            }
+            let idx = Math.floor(Math.random() * this.availableWords.length);
+            this.word = this.availableWords[idx];
+            this.availableWords.splice(idx, 1);
+            this.currentHint = this.hints[this.word];
+          } else {
+            this.word = this.customWord.toLowerCase();
+            this.currentHint = this.customHint;
+          }
+          this.attempts = 0;
+          this.guessedWord = Array(this.word.length).fill("_");
+          if (this.difficulty === "super facil") {
+            let revealed = [];
+            while (revealed.length < 3 && revealed.length < this.word.length) {
+              let i = Math.floor(Math.random() * this.word.length);
+              if (!revealed.includes(i)) { revealed.push(i); this.guessedWord[i] = this.word[i]; }
+            }
+          }
+          this.wrongLetters = [];
+          this.hintShown = false;
+          this.currentScore = 0;
+          this.startTime = new Date();
+          this.updateWordDisplay();
+          this.updateWrongLettersTable();
+          this.updateHangmanImage();
+          this.setMessage("");
+          document.getElementById("currentScoreDisplay").textContent = "";
+          document.getElementById("hintDisplay").textContent = this.alwaysShowHint ? this.currentHint : "";
+          resetKeyboard();
+          if (this.turnTime > 0) {
+            if (!document.getElementById("tutorialModal").style.display || document.getElementById("tutorialModal").style.display === "none") {
+              this.startTurnTimer();
+            }
+          } else {
+            document.getElementById("timeLeft").textContent = "--";
           }
         }
+
+        updateWordDisplay() {
+          const wd = document.getElementById("wordDisplay");
+          wd.textContent = this.guessedWord.join(" ");
+          wd.classList.add("animate-fadein");
+          setTimeout(() => wd.classList.remove("animate-fadein"), 500);
+        }
+
+        updateWrongLettersTable() {
+          const table = document.getElementById("wrongLettersTable");
+          let row = "<tr><th>Letras</th></tr><tr>" + this.wrongLetters.map(l => `<td>${l}</td>`).join("") + "</tr>";
+          table.innerHTML = row;
+          table.classList.add("animate-fadein");
+          setTimeout(() => table.classList.remove("animate-fadein"), 500);
+        }
+
+        setMessage(msg) {
+          const msgEl = document.getElementById("message");
+          msgEl.textContent = msg;
+          msgEl.classList.add("animate-fadein");
+          setTimeout(() => msgEl.classList.remove("animate-fadein"), 500);
+        }
+
+        updateHangmanImage() {
+          const img = document.getElementById("hangmanImage");
+          // Si se gana la palabra, se usa la imagen stage7
+          if (!this.guessedWord.includes("_")) {
+            img.src = "images/stage7.png";
+          } else {
+            // En otros estados, se puede actualizar la imagen según los intentos (manteniendo la lógica original)
+            img.src = `images/stage${this.attempts}.png`;
+          }
+          img.classList.add("animate-fadein");
+          setTimeout(() => img.classList.remove("animate-fadein"), 500);
+        }
+
+        calculateScore() {
+          return this.guessedWord.includes("_") ? 0 : (this.maxAttempts - this.attempts) * 10;
+        }
+
+        submitGuess(letter) {
+          if (this.attempts >= this.maxAttempts || !this.guessedWord.includes("_"))
+            return;
+          if (this.guessedWord.includes(letter) || this.wrongLetters.includes(letter)) {
+            this.setMessage("Ya has ingresado esa letra.");
+            return;
+          }
+          this.stopTurnTimer();
+          if (this.word.includes(letter)) {
+            this.word.split("").forEach((char, i) => {
+              if (char === letter) {
+                this.guessedWord[i] = letter;
+              }
+            });
+            this.updateWordDisplay();
+            document.getElementById("audio-correct").play();
+            if (!this.guessedWord.includes("_")) {
+              this.currentScore = this.calculateScore();
+              totalScore += this.currentScore;  // Acumula el puntaje total
+              this.setMessage(`¡Felicidades! Ganaste. Puntaje total: ${totalScore}`);
+              document.getElementById("currentScoreDisplay").textContent = `Puntaje acumulado: ${totalScore}`;
+              this.wins++;
+              this.updateScoreBoard();
+              // Muestra controles para continuar la ronda
+              document.getElementById("roundControls").style.display = "block";
+              this.stopTurnTimer();
+              this.endGame();
+              return;
+            }
+          } else {
+            this.wrongLetters.push(letter);
+            this.updateWrongLettersTable();
+            this.attempts++;
+            this.updateHangmanImage();
+            document.getElementById("audio-wrong").play();
+            if (!this.alwaysShowHint && !this.hintShown && this.attempts >= 3 && this.mode === "singleplayer") {
+              document.getElementById("hintDisplay").textContent = this.currentHint;
+              this.hintShown = true;
+            }
+            if (this.attempts === this.maxAttempts) {
+              this.currentScore = 0;
+              // En caso de perder se muestra el mensaje "AHORCADO GAME OVER"
+              this.setMessage("AHORCADO GAME OVER");
+              // No se cambia la imagen, se mantiene la que tenía antes o se deja la última imagen
+              this.losses++;
+              this.updateScoreBoard();
+              document.getElementById("currentScoreDisplay").textContent = `Puntaje acumulado: ${totalScore}`;
+              document.getElementById("audio-gameover").play();
+              // Muestra controles para continuar la ronda
+              document.getElementById("roundControls").style.display = "block";
+              this.stopTurnTimer();
+              this.endGame();
+              return;
+            }
+          }
+          if (this.turnTime > 0) {
+            this.startTurnTimer();
+          }
+        }
+
+        updateScoreBoard() {
+          const sb = document.getElementById("scoreBoard");
+          sb.textContent = `Victorias: ${this.wins} | Derrotas: ${this.losses}`;
+          sb.classList.add("animate-fadein");
+          setTimeout(() => sb.classList.remove("animate-fadein"), 500);
+        }
+
+        startTurnTimer() {
+          if (this.turnTime <= 0) return;
+          this.remainingTime = this.turnTime;
+          document.getElementById("timeLeft").textContent = this.remainingTime;
+          this.timerInterval = setInterval(() => {
+            this.remainingTime--;
+            document.getElementById("timeLeft").textContent = this.remainingTime;
+            if (this.remainingTime <= 0) {
+              clearInterval(this.timerInterval);
+              this.setMessage("¡Tiempo agotado! Se cuenta como error.");
+              let dummy = "z";
+              for (let l of alphabet) {
+                if (!this.guessedWord.includes(l) && !this.wrongLetters.includes(l)) {
+                  dummy = l;
+                  break;
+                }
+              }
+              this.submitGuess(dummy);
+            }
+          }, 1000);
+        }
+
+        stopTurnTimer() {
+          clearInterval(this.timerInterval);
+        }
+
+        endGame() {
+          const gameDuration = Math.floor((new Date() - this.startTime) / 1000);
+          totalGames++;
+          if (this.currentScore > 0) {
+            totalWins++;
+          } else {
+            totalLosses++;
+          }
+          totalTimeSpent += gameDuration;
+          updateStatsDisplay();
+        }
       }
-    });
-  </script>
-</body>
+
+      let game;
+
+      document.getElementById("startForm").addEventListener("submit", function(e) {
+        e.preventDefault();
+        const mode = document.querySelector('input[name="mode"]:checked').value;
+        const difficulty = document.getElementById("difficultySelect").value;
+        let customWord = "", customHint = "";
+        if (mode === "multiplayer") {
+          customWord = document.getElementById("multiplayerWord").value.trim();
+          customHint = document.getElementById("multiplayerHint").value.trim();
+          if (!customWord || !customHint) {
+            alert("Por favor, ingresa tanto la palabra como la pista para el modo multijugador.");
+            return;
+          }
+        }
+        document.getElementById("startModal").style.display = "none";
+        document.getElementById("gameContainer").style.display = "flex";
+        if (!localStorage.getItem("tutorialSeen")) {
+          document.getElementById("tutorialModal").style.display = "flex";
+        } else if (game && game.turnTime > 0) {
+          game.startTurnTimer();
+        }
+        buildKeyboard();
+        game = new HangmanGame({ mode, difficulty, customWord, customHint });
+      });
+
+      document.querySelectorAll('input[name="mode"]').forEach(radio => {
+        radio.addEventListener("change", function() {
+          document.getElementById("multiplayerFields").style.display = this.value === "multiplayer" ? "block" : "none";
+        });
+      });
+
+      document.addEventListener("keydown", function(e) {
+        const letter = e.key.toLowerCase();
+        if (alphabet.includes(letter)) {
+          const btn = document.getElementById("key_" + letter);
+          if (btn && !btn.disabled) {
+            btn.disabled = true;
+            if (game) { game.submitGuess(letter); }
+          }
+        }
+      });
+    </script>
+  </body>
 </html>
