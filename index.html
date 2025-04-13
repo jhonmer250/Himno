@@ -31,7 +31,8 @@
       box-shadow: 0 0 10px rgba(0,0,0,0.1);
       transition: background-color 0.3s, color 0.3s;
     }
-    .dark-mode .game-area, .dark-mode .records-area {
+    .dark-mode .game-area,
+    .dark-mode .records-area {
       background-color: #555;
       color: #eee;
     }
@@ -50,27 +51,25 @@
       text-align: center;
       margin: 20px 0;
     }
-    /* Modificación: contenedor de imagen con posición relativa */
+    /* Imagen y pista no superpuesta */
     .image {
-      position: relative;
       text-align: center;
       margin: 20px 0;
     }
-    /* La imagen mantiene su estilo */
-    #hangmanImage {
-      transition: opacity 0.5s ease, transform 0.5s ease;
-    }
-    /* Nuevo estilo para la pista superpuesta */
+    /* Estilo actualizado para la pista (ya no superpuesta) */
     .hint-overlay {
-      position: absolute;
-      top: 0;
-      left: 50%;
-      transform: translateX(-50%);
-      background: rgba(0,0,0,0.6);
-      color: #fff;
+      display: block;
+      background: rgba(230, 230, 230, 0.9);
+      color: #333;
       padding: 5px 10px;
+      border: 1px solid #ccc;
       border-radius: 5px;
       font-size: 16px;
+      margin-bottom: 10px;
+      text-align: center;
+    }
+    #hangmanImage {
+      transition: opacity 0.5s ease, transform 0.5s ease;
     }
     #message, #timerDisplay {
       font-size: 20px;
@@ -136,12 +135,42 @@
       z-index: 1000;
     }
     .modal-content {
-      background: #fff;
+      position: relative;
+      background: rgba(255, 255, 255, 0.95);
       padding: 20px;
       border-radius: 8px;
       width: 90%;
       max-width: 400px;
       text-align: center;
+      overflow: hidden;
+    }
+    .modal-content::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: url('images/stage7.png') center center no-repeat;
+      background-size: cover;
+      opacity: 0.1;
+      z-index: 0;
+    }
+    .modal-content > * {
+      position: relative;
+      z-index: 1;
+    }
+    .welcome-title {
+      font-size: 48px;
+      text-align: center;
+      margin: 0;
+      color: #333;
+    }
+    .subtitle {
+      font-size: 24px;
+      text-align: center;
+      margin: 10px 0 30px 0;
+      color: #555;
     }
     .modal-content input[type="text"],
     .modal-content select {
@@ -193,7 +222,8 @@
   <!-- Modal de inicio -->
   <div id="startModal" class="modal">
     <div class="modal-content">
-      <h2>Bienvenido al Juego de Farmacia Charallave</h2>
+      <h1 class="welcome-title">BIENVENIDO</h1>
+      <p class="subtitle">Juego de Farmacia Charallave</p>
       <form id="startForm">
         <div>
           <label>Modo de Juego:</label><br>
@@ -226,10 +256,10 @@
     <!-- Área de Juego -->
     <div class="game-area">
       <h1>Juego de Ahorcado en la Farmacia</h1>
-      <!-- Contenedor de la imagen con pista superpuesta -->
+      <!-- Contenedor de la imagen y pista (la pista ahora aparece arriba de la imagen) -->
       <div class="image">
-        <img id="hangmanImage" src="images/stage0.png" alt="Ahorcado" width="200" />
         <div id="hintDisplay" class="hint-overlay"></div>
+        <img id="hangmanImage" src="images/stage0.png" alt="Ahorcado" width="200" />
       </div>
       <div class="word" id="wordDisplay"></div>
       <div id="timerDisplay">Tiempo restante: <span id="timeLeft"></span> s</div>
@@ -331,13 +361,16 @@
     }
     
     function updateStatsDisplay() {
-      const avgTime = totalGames > 0 ? (totalTimeSpent / totalGames).toFixed(1) : 0;
-      document.getElementById("overallStats").textContent = 
+      const avgTime =
+        totalGames > 0 ? (totalTimeSpent / totalGames).toFixed(1) : 0;
+      document.getElementById("overallStats").textContent =
         `Total Partidas: ${totalGames} | Victorias: ${totalWins} | Derrotas: ${totalLosses} | Tiempo Promedio: ${avgTime} s`;
     }
     
     /* Teclado en pantalla (alfabeto: a-z, ñ) */
-    const alphabet = ["a","b","c","d","e","f","g","h","i","j","k","l","m","n","ñ","o","p","q","r","s","t","u","v","w","x","y","z"];
+    const alphabet = [
+      "a","b","c","d","e","f","g","h","i","j","k","l","m","n","ñ","o","p","q","r","s","t","u","v","w","x","y","z"
+    ];
     
     function buildKeyboard() {
       const container = document.getElementById("keyboardContainer");
@@ -368,7 +401,7 @@
         this.customWord = options.customWord || "";
         this.customHint = options.customHint || "";
         // Configuración según la dificultad
-        switch(this.difficulty) {
+        switch (this.difficulty) {
           case "facil":
             this.maxAttempts = 8;
             this.turnTime = 15;
@@ -386,7 +419,7 @@
             break;
           case "super facil":
             this.maxAttempts = 8;
-            this.turnTime = 0;  // No se usa temporizador
+            this.turnTime = 0; // No se usa temporizador
             this.alwaysShowHint = true;
             break;
           default:
@@ -394,28 +427,12 @@
             this.turnTime = 10;
             this.alwaysShowHint = false;
         }
-        // Lista de medicamentos para el modo solitario (20 productos vendidos en Venezuela)
+        // Lista de medicamentos para el modo solitario (20 productos en Venezuela)
         this.words = [
-          "atamel",
-          "longacef",
-          "miovit",
-          "colypan",
-          "aciclovir",
-          "alpram",
-          "levotiroxina",
-          "candesartan",
-          "propofol",
-          "prurica",
-          "paracetamol",
-          "ibuprofeno",
-          "amoxicilina",
-          "omeprazol",
-          "dipirona",
-          "metformina",
-          "captopril",
-          "simvastatina",
-          "loratadina",
-          "azitromicina"
+          "atamel", "longacef", "miovit", "colypan", "aciclovir",
+          "alpram", "levotiroxina", "candesartan", "propofol", "prurica",
+          "paracetamol", "ibuprofeno", "amoxicilina", "omeprazol", "dipirona",
+          "metformina", "captopril", "simvastatina", "loratadina", "azitromicina"
         ];
         this.hints = {
           "atamel": "Se usa para aliviar dolores leves a moderados.",
@@ -465,7 +482,7 @@
         this.attempts = 0;
         // Inicializa la palabra oculta con guiones bajos
         this.guessedWord = Array(this.word.length).fill("_");
-        // En el nivel "super facil", revelamos 3 letras aleatoriamente desde el inicio
+        // En "super facil", revela 3 letras aleatorias al inicio
         if (this.difficulty === "super facil") {
           let indicesRevealed = [];
           while (indicesRevealed.length < 3 && indicesRevealed.length < this.word.length) {
@@ -486,10 +503,9 @@
         this.updateHangmanImage();
         this.setMessage("");
         document.getElementById("currentScoreDisplay").textContent = "";
-        // Actualiza la pista superpuesta en la imagen
+        // Actualiza la pista (ahora se muestra arriba de la imagen)
         document.getElementById("hintDisplay").textContent = this.alwaysShowHint ? this.currentHint : "";
         resetKeyboard();
-        // Solo iniciar el temporizador si turnTime es mayor que cero
         if (this.turnTime > 0) {
           this.startTurnTimer();
         } else {
@@ -601,7 +617,7 @@
       
       /* Temporizador para cada turno */
       startTurnTimer() {
-        if (this.turnTime <= 0) return;  // No iniciar temporizador en "super facil"
+        if (this.turnTime <= 0) return;
         this.remainingTime = this.turnTime;
         document.getElementById("timeLeft").textContent = this.remainingTime;
         this.timerInterval = setInterval(() => {
