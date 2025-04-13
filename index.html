@@ -50,12 +50,27 @@
       text-align: center;
       margin: 20px 0;
     }
+    /* Modificación: contenedor de imagen con posición relativa */
     .image {
+      position: relative;
       text-align: center;
       margin: 20px 0;
     }
+    /* La imagen mantiene su estilo */
     #hangmanImage {
       transition: opacity 0.5s ease, transform 0.5s ease;
+    }
+    /* Nuevo estilo para la pista superpuesta */
+    .hint-overlay {
+      position: absolute;
+      top: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0,0,0,0.6);
+      color: #fff;
+      padding: 5px 10px;
+      border-radius: 5px;
+      font-size: 16px;
     }
     #message, #timerDisplay {
       font-size: 20px;
@@ -63,7 +78,7 @@
       margin: 10px 0;
       transition: opacity 0.5s;
     }
-    .scoreboard, .current-score, .hint {
+    .scoreboard, .current-score {
       text-align: center;
       margin: 10px 0;
       font-size: 18px;
@@ -178,7 +193,7 @@
   <!-- Modal de inicio -->
   <div id="startModal" class="modal">
     <div class="modal-content">
-      <h2>Bienvenido al Ahorcado en la Farmacia</h2>
+      <h2>Bienvenido al Juego de Farmacia Charallave</h2>
       <form id="startForm">
         <div>
           <label>Modo de Juego:</label><br>
@@ -197,6 +212,7 @@
             <option value="facil">Fácil</option>
             <option value="medio">Medio</option>
             <option value="dificil">Difícil</option>
+            <option value="super facil">Super Fácil</option>
           </select>
         </div>
         <br>
@@ -210,8 +226,10 @@
     <!-- Área de Juego -->
     <div class="game-area">
       <h1>Juego de Ahorcado en la Farmacia</h1>
+      <!-- Contenedor de la imagen con pista superpuesta -->
       <div class="image">
         <img id="hangmanImage" src="images/stage0.png" alt="Ahorcado" width="200" />
+        <div id="hintDisplay" class="hint-overlay"></div>
       </div>
       <div class="word" id="wordDisplay"></div>
       <div id="timerDisplay">Tiempo restante: <span id="timeLeft"></span> s</div>
@@ -231,7 +249,6 @@
       </div>
       <p id="message"></p>
       <div class="current-score" id="currentScoreDisplay"></div>
-      <div class="hint" id="hintDisplay"></div>
     </div>
     
     <!-- Área de Récords y Estadísticas -->
@@ -255,7 +272,7 @@
     </div>
   </div>
   
-  <!-- Elementos de audio (asegúrate de contar con los archivos o ajusta las rutas) -->
+  <!-- Elementos de audio (ajusta las rutas según tus archivos) -->
   <audio id="audio-correct" src="sounds/correct.mp3"></audio>
   <audio id="audio-wrong" src="sounds/wrong.mp3"></audio>
   <audio id="audio-gameover" src="sounds/gameover.mp3"></audio>
@@ -347,10 +364,10 @@
     class HangmanGame {
       constructor(options) {
         this.mode = options.mode; // "singleplayer" o "multiplayer"
-        this.difficulty = options.difficulty; // "facil", "medio", "dificil"
+        this.difficulty = options.difficulty; // "facil", "medio", "dificil", "super facil"
         this.customWord = options.customWord || "";
         this.customHint = options.customHint || "";
-        // Parámetros según la dificultad:
+        // Configuración según la dificultad
         switch(this.difficulty) {
           case "facil":
             this.maxAttempts = 8;
@@ -367,12 +384,17 @@
             this.turnTime = 7;
             this.alwaysShowHint = false;
             break;
+          case "super facil":
+            this.maxAttempts = 8;
+            this.turnTime = 0;  // No se usa temporizador
+            this.alwaysShowHint = true;
+            break;
           default:
             this.maxAttempts = 6;
             this.turnTime = 10;
             this.alwaysShowHint = false;
         }
-        // Lista de medicamentos para el modo solitario (total 20), productos vendidos en Venezuela
+        // Lista de medicamentos para el modo solitario (20 productos vendidos en Venezuela)
         this.words = [
           "atamel",
           "longacef",
@@ -441,7 +463,19 @@
           this.currentHint = this.customHint;
         }
         this.attempts = 0;
+        // Inicializa la palabra oculta con guiones bajos
         this.guessedWord = Array(this.word.length).fill("_");
+        // En el nivel "super facil", revelamos 3 letras aleatoriamente desde el inicio
+        if (this.difficulty === "super facil") {
+          let indicesRevealed = [];
+          while (indicesRevealed.length < 3 && indicesRevealed.length < this.word.length) {
+            let randomIndex = Math.floor(Math.random() * this.word.length);
+            if (!indicesRevealed.includes(randomIndex)) {
+              indicesRevealed.push(randomIndex);
+              this.guessedWord[randomIndex] = this.word[randomIndex];
+            }
+          }
+        }
         this.wrongLetters = [];
         this.hintShown = false;
         this.currentScore = 0;
@@ -452,9 +486,15 @@
         this.updateHangmanImage();
         this.setMessage("");
         document.getElementById("currentScoreDisplay").textContent = "";
+        // Actualiza la pista superpuesta en la imagen
         document.getElementById("hintDisplay").textContent = this.alwaysShowHint ? this.currentHint : "";
         resetKeyboard();
-        this.startTurnTimer();
+        // Solo iniciar el temporizador si turnTime es mayor que cero
+        if (this.turnTime > 0) {
+          this.startTurnTimer();
+        } else {
+          document.getElementById("timeLeft").textContent = "--";
+        }
       }
       
       updateWordDisplay() {
@@ -547,7 +587,9 @@
             return;
           }
         }
-        this.startTurnTimer();
+        if (this.turnTime > 0) {
+          this.startTurnTimer();
+        }
       }
       
       updateScoreBoard() {
@@ -559,6 +601,7 @@
       
       /* Temporizador para cada turno */
       startTurnTimer() {
+        if (this.turnTime <= 0) return;  // No iniciar temporizador en "super facil"
         this.remainingTime = this.turnTime;
         document.getElementById("timeLeft").textContent = this.remainingTime;
         this.timerInterval = setInterval(() => {
