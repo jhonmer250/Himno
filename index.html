@@ -46,7 +46,11 @@
       margin: 0;
       padding: 0;
     }
-    .word, #message, #timerDisplay, .scoreboard, .current-score {
+    .word,
+    #message,
+    #timerDisplay,
+    .scoreboard,
+    .current-score {
       text-align: center;
       margin: 10px 0;
     }
@@ -185,6 +189,11 @@
       cursor: pointer;
     }
     
+    /* TUTORIAL MODAL (se muestra una vez) */
+    #tutorialModal .modal-content {
+      max-width: 500px;
+    }
+    
     /* TABLA DE RÉCORDS */
     .records-area table {
       width: 100%;
@@ -207,6 +216,47 @@
       to { opacity: 1; }
     }
     
+    /* CONFETTI (reinforce visual de recompensa) */
+    #confettiContainer {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 2000;
+    }
+    .confetti {
+      position: absolute;
+      width: 8px;
+      height: 8px;
+      opacity: 0.8;
+      animation: confettiFall 3s linear forwards;
+    }
+    @keyframes confettiFall {
+      0% { transform: translateY(0) rotate(0deg); }
+      100% { transform: translateY(100vh) rotate(360deg); }
+    }
+    
+    /* INSTAGRAM BANNER */
+    #instagramBanner {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      background: #fff;
+      text-align: center;
+      padding: 10px;
+      border-top: 1px solid #ccc;
+      z-index: 1500;
+    }
+    #instagramBanner a {
+      text-decoration: none;
+      color: #E1306C;
+      font-size: 18px;
+      font-weight: bold;
+    }
+    
     /* BOTÓN TOGGLE DARK MODE */
     #darkModeToggle {
       position: fixed;
@@ -217,20 +267,44 @@
       z-index: 1100;
     }
     
-    /* MEDIA QUERIES PARA MÓVILES */
+    /* MEDIA QUERIES */
     @media(max-width: 600px) {
-      .welcome-title { font-size: 36px; }
-      .subtitle { font-size: 18px; }
-      .word { font-size: 22px; }
-      #keyboardContainer button { width: 35px; font-size: 14px; padding: 8px 10px; }
+      .welcome-title {
+        font-size: 36px;
+      }
+      .subtitle {
+        font-size: 18px;
+      }
+      .word {
+        font-size: 22px;
+      }
+      #keyboardContainer button {
+        width: 35px;
+        font-size: 14px;
+        padding: 8px 10px;
+      }
     }
   </style>
 </head>
 <body>
-  <!-- Botón para alternar Dark/Light mode -->
+  <!-- Botón para Dark/Light mode -->
   <button id="darkModeToggle" onclick="toggleDarkMode()">Toggle Dark Mode</button>
   
-  <!-- Modal de inicio -->
+  <!-- Contenedor de Confetti -->
+  <div id="confettiContainer"></div>
+  
+  <!-- Modal Tutorial (se muestra solo la primera vez) -->
+  <div id="tutorialModal" class="modal" style="display: none;">
+    <div class="modal-content">
+      <h2>Tutorial</h2>
+      <p>Bienvenido al juego de Ahorcado en la Farmacia Charallave.</p>
+      <p>Utiliza el teclado en pantalla o físico para adivinar la palabra.</p>
+      <p>Observa las pistas y trata de acertar la mayor cantidad de letras.</p>
+      <button onclick="closeTutorial()">¡Entendido!</button>
+    </div>
+  </div>
+  
+  <!-- Modal de Inicio -->
   <div id="startModal" class="modal">
     <div class="modal-content">
       <h1 class="welcome-title">BIENVENIDO</h1>
@@ -262,19 +336,16 @@
     </div>
   </div>
   
-  <!-- Contenedor principal (se muestra después de iniciar) -->
+  <!-- Contenedor Principal (se muestra después de iniciar) -->
   <div class="container" id="gameContainer" style="display:none;">
-    <!-- Área de juego -->
     <div class="game-area">
       <h1>Juego de Ahorcado en la Farmacia</h1>
-      <!-- Contenedor de imagen y pista (la pista se muestra arriba de la imagen) -->
       <div class="image">
         <div id="hintDisplay" class="hint-overlay"></div>
         <img id="hangmanImage" src="images/stage0.png" alt="Ahorcado" width="200" />
       </div>
       <div class="word" id="wordDisplay"></div>
       <div id="timerDisplay">Tiempo restante: <span id="timeLeft"></span> s</div>
-      <!-- Teclado en pantalla -->
       <div id="keyboardContainer"></div>
       <div class="wrong-letters">
         <h2>Letras Incorrectas</h2>
@@ -291,8 +362,6 @@
       <p id="message"></p>
       <div class="current-score" id="currentScoreDisplay"></div>
     </div>
-    
-    <!-- Área de Récords y Estadísticas -->
     <div class="records-area">
       <h2>Récords</h2>
       <div style="text-align:center;">
@@ -313,29 +382,34 @@
     </div>
   </div>
   
-  <!-- Elementos de audio (ajusta la ruta según tus archivos) -->
+  <!-- Banner de Instagram -->
+  <div id="instagramBanner">
+    <a href="https://www.instagram.com/farmaciacharallave/" target="_blank">
+      Síguenos en Instagram
+    </a>
+  </div>
+  
+  <!-- Elementos de audio -->
   <audio id="audio-correct" src="sounds/correct.mp3"></audio>
   <audio id="audio-wrong" src="sounds/wrong.mp3"></audio>
   <audio id="audio-gameover" src="sounds/gameover.mp3"></audio>
   
   <script>
-    /* Variables globales para estadísticas */
+    /* VARIABLES GLOBALES Y ESTADÍSTICAS */
     let totalGames = 0, totalWins = 0, totalLosses = 0, totalTimeSpent = 0;
     
     function toggleDarkMode() {
       document.body.classList.toggle("dark-mode");
     }
     
-    /* Gestión de Récords en localStorage */
+    /* Gestión de Récords */
     function loadRecords() {
       const data = localStorage.getItem("hangmanRecords");
       return data ? JSON.parse(data) : [];
     }
-    
     function saveRecords(records) {
       localStorage.setItem("hangmanRecords", JSON.stringify(records));
     }
-    
     function updateRecordsTable() {
       const records = loadRecords();
       const table = document.getElementById("recordsTable");
@@ -345,10 +419,9 @@
       });
       table.innerHTML = rows;
     }
-    
     function saveRecord() {
       const name = document.getElementById("recordName").value.trim();
-      if (!name) { alert("Por favor, ingresa un nombre válido."); return; }
+      if (!name) { alert("Ingresa un nombre válido."); return; }
       const record = { name, score: game.currentScore || 0, date: new Date().toLocaleString() };
       const records = loadRecords();
       records.push(record);
@@ -357,7 +430,6 @@
       updateRecordsTable();
       document.getElementById("recordName").value = "";
     }
-    
     function updateStatsDisplay() {
       const avgTime = totalGames > 0 ? (totalTimeSpent / totalGames).toFixed(1) : 0;
       document.getElementById("overallStats").textContent =
@@ -366,7 +438,6 @@
     
     /* Teclado en pantalla */
     const alphabet = "abcdefghijklmnopqrstuvwxyzñ".split("");
-    
     function buildKeyboard() {
       const container = document.getElementById("keyboardContainer");
       container.innerHTML = "";
@@ -374,16 +445,43 @@
         const btn = document.createElement("button");
         btn.textContent = letter;
         btn.id = "key_" + letter;
-        btn.addEventListener("click", () => { game.submitGuess(letter); });
+        btn.addEventListener("click", () => { 
+          if(navigator.vibrate){ navigator.vibrate(50); }
+          game.submitGuess(letter);
+        });
         container.appendChild(btn);
       });
     }
-    
     function resetKeyboard() {
       alphabet.forEach(letter => {
         const btn = document.getElementById("key_" + letter);
         if (btn) btn.disabled = false;
       });
+    }
+    
+    /* Confetti para efecto de recompensa */
+    function randomColor() {
+      const colors = ["#FFC107", "#FF5722", "#4CAF50", "#2196F3", "#9C27B0"];
+      return colors[Math.floor(Math.random() * colors.length)];
+    }
+    function showConfetti() {
+      const container = document.getElementById("confettiContainer");
+      for(let i = 0; i < 30; i++){
+        const confetti = document.createElement("div");
+        confetti.className = "confetti";
+        confetti.style.backgroundColor = randomColor();
+        confetti.style.left = Math.random() * 100 + "%";
+        confetti.style.top = "-10px";
+        confetti.style.transform = `rotate(${Math.random() * 360}deg)`;
+        container.appendChild(confetti);
+      }
+      setTimeout(() => { container.innerHTML = ""; }, 3000);
+    }
+    
+    /* Tutorial Modal (solo primera vez) */
+    function closeTutorial() {
+      document.getElementById("tutorialModal").style.display = "none";
+      localStorage.setItem("tutorialSeen", "true");
     }
     
     /* Clase principal del juego */
@@ -428,7 +526,7 @@
           "loratadina": "Antihistamínico contra alergias.",
           "azitromicina": "Antibiótico para infecciones respiratorias."
         };
-        this.availableWords = [...this.words]; // Para evitar repetir en solitario
+        this.availableWords = [...this.words];
         this.wins = 0;
         this.losses = 0;
         this.resetGame();
@@ -481,7 +579,7 @@
         const wd = document.getElementById("wordDisplay");
         wd.textContent = this.guessedWord.join(" ");
         wd.classList.add("animate-fadein");
-        setTimeout(() => { wd.classList.remove("animate-fadein"); }, 500);
+        setTimeout(() => wd.classList.remove("animate-fadein"), 500);
       }
       
       updateWrongLettersTable() {
@@ -489,25 +587,25 @@
         let row = "<tr><th>Letras</th></tr><tr>" + this.wrongLetters.map(l => `<td>${l}</td>`).join("") + "</tr>";
         table.innerHTML = row;
         table.classList.add("animate-fadein");
-        setTimeout(() => { table.classList.remove("animate-fadein"); }, 500);
+        setTimeout(() => table.classList.remove("animate-fadein"), 500);
       }
       
       setMessage(msg) {
         const msgEl = document.getElementById("message");
         msgEl.textContent = msg;
         msgEl.classList.add("animate-fadein");
-        setTimeout(() => { msgEl.classList.remove("animate-fadein"); }, 500);
+        setTimeout(() => msgEl.classList.remove("animate-fadein"), 500);
       }
       
       updateHangmanImage() {
         const img = document.getElementById("hangmanImage");
         img.src = `images/stage${this.attempts}.png`;
         img.classList.add("animate-fadein");
-        setTimeout(() => { img.classList.remove("animate-fadein"); }, 500);
+        setTimeout(() => img.classList.remove("animate-fadein"), 500);
       }
       
       calculateScore() {
-        return !this.guessedWord.includes("_") ? (this.maxAttempts - this.attempts) * 10 : 0;
+        return this.guessedWord.includes("_") ? 0 : (this.maxAttempts - this.attempts) * 10;
       }
       
       submitGuess(letter) {
@@ -531,6 +629,7 @@
             this.wins++;
             this.updateScoreBoard();
             document.getElementById("currentScoreDisplay").textContent = `Puntaje obtenido: ${this.currentScore}`;
+            showConfetti();
             this.stopTurnTimer();
             this.endGame();
             return;
@@ -565,7 +664,7 @@
         const sb = document.getElementById("scoreBoard");
         sb.textContent = `Victorias: ${this.wins} | Derrotas: ${this.losses}`;
         sb.classList.add("animate-fadein");
-        setTimeout(() => { sb.classList.remove("animate-fadein"); }, 500);
+        setTimeout(() => sb.classList.remove("animate-fadein"), 500);
       }
       
       startTurnTimer() {
@@ -617,6 +716,10 @@
       }
       document.getElementById("startModal").style.display = "none";
       document.getElementById("gameContainer").style.display = "flex";
+      // Mostrar el Tutorial si es la primera vez
+      if (!localStorage.getItem("tutorialSeen")) {
+        document.getElementById("tutorialModal").style.display = "flex";
+      }
       buildKeyboard();
       game = new HangmanGame({ mode, difficulty, customWord, customHint });
     });
